@@ -1,0 +1,31 @@
+{
+  "plan": {
+    "type": "enterprise_premium",
+    "price_per_seat": 150,
+    "currency": "USD"
+  },
+  "rate_limits": {
+    "model": "claude-sonnet-4-20250514",
+    "requests_per_minute": 50,
+    "input_tokens_per_minute": 30000,
+    "output_tokens_per_minute": 8000,
+    "window_hours": 5,
+    "note": "5시간 롤링 윈도우. 초과 시 API 요금 청구"
+  },
+  "reset_schedule": {
+    "type": "rolling_5h",
+    "description": "마지막 사용 시점부터 5시간 후 리셋"
+  },
+  "overage_pricing": {
+    "sonnet_4_input": 3.0,
+    "sonnet_4_output": 15.0,
+    "unit": "per million tokens"
+  },
+  "display_settings": {
+    "timezone": "Asia/Seoul",
+    "time_format": "24h",
+    "show_percentage": true,
+    "show_reset_time": true,
+    "progress_bar_style": "battery"
+  }
+}
