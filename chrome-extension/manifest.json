@@ -8,7 +8,6 @@
     "alarms",
     "tabs",
     "activeTab",
-    "nativeMessaging",
     "downloads"
   ],
   "host_permissions": [
