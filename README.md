@@ -1,343 +1,227 @@
-# Claude Team Usage Monitor
+# Claude Team Usage Monitor v3.0
 
-**macOS 메뉴바에서 Claude Code (Team Premium) 사용량을 실시간으로 모니터링**
+**완전 자동화된 Chrome Extension 기반 사용량 모니터**
 
-[![Platform](https://img.shields.io/badge/platform-macOS-lightgrey)](https://www.apple.com/macos)
-[![Python](https://img.shields.io/badge/python-3.9%2B-blue)](https://www.python.org)
-[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+Mac StatusBar (SwiftBar)에서 Claude Team 사용량을 실시간으로 모니터링합니다.
 
-## ✨ 특징
+![Version](https://img.shields.io/badge/version-3.0-blue)
+![Platform](https://img.shields.io/badge/platform-macOS-lightgrey)
+![Chrome](https://img.shields.io/badge/chrome-extension-green)
 
-- 🎯 **Team Premium 전용** - Claude Code Team Premium 플랜에 최적화
-- 🎚️ **Calibration 시스템** - Claude UI 기준으로 수동 보정 (±0.5% 정확도)
-- 📊 **이중 추적** - 세션(5시간) + 주간(7일) 동시 모니터링
-- ⚡ **실시간 계산** - Learned limit 기반 동적 퍼센트 계산
-- 🔄 **Global Fallback Limit** - 세션 간 학습 데이터 공유로 초기 정확도 향상
-- 🔔 **스마트 알림** - 80%, 90%, 95% 도달 시 macOS 알림
-- 🎨 **간결한 UI** - SwiftBar 메뉴바에서 핵심 정보만 표시
-- 💻 **개별 PC 지원** - 각 PC에서 독립적으로 작동
-- 🛡️ **안정성 강화** (v2.1) - Daemon 중복 방지, 윈도우 검증, Limit 범위 검증
+## ✨ 주요 기능
 
-## 🚀 설치
+- 🔄 **완전 자동화**: Chrome Extension 클릭 한 번으로 자동 동기화
+- 📊 **실시간 표시**: SwiftBar에 Session/Weekly 사용량 표시
+- 🟢 **색상 코딩**: 사용량에 따른 자동 색상 변경 (녹색/노란색/빨간색)
+- ⚡ **빠른 동기화**: 1-3초 이내 자동 업데이트
+- 🎯 **간단한 구조**: Monitor daemon 제거, Extension 전용
 
-```bash
-git clone git@github.com:dslee02/claude-team-usage-monitor.git
-cd claude-team-usage-monitor
-./install.sh
-```
+## 📋 시스템 구성
 
-설치 후 SwiftBar를 실행하면 메뉴바에서 바로 사용량을 확인할 수 있습니다.
+### Chrome Extension
+- 자동 스크래핑 (5분 간격)
+- Badge에 실시간 % 표시
+- 클릭 한 번으로 수동 스크래핑
 
-## 📊 사용 예시
+### Extension Watcher
+- fswatch 기반 파일 감지
+- 1초 이내 자동 동기화
+- 백그라운드 실행
 
-**메뉴바:**
-```
-🟢 35.2%
-```
+### SwiftBar Plugin
+- 간결한 표시 (100줄)
+- 로컬 시간 표시
+- 자동 새로고침
 
-**드롭다운:**
-```
-📊 Session (resets in 2h 20m)
-  Max: 35.2% (calibrated)
-  Output: 27.0% (130,660 tokens)
-  Input: 36.2% (12,110 tokens)
-  Messages: 525
+## 🚀 빠른 시작
 
-📈 Weekly (7 days)
-  Max: 56.1% (calibrated)
-  Output: 49.1% (956,062 tokens)
-  Input: 7.4% (65,464 tokens)
-  Messages: 4,140
-```
-
-## 💡 작동 원리
-
-### 1. 자동 모니터링
-- Claude Code 세션 파일(`~/.claude/projects`)을 실시간으로 파싱
-- 토큰 사용량 자동 집계 (input, output, cache)
-
-### 2. Calibration 시스템
-- **Claude UI의 실제 값으로 수동 보정**
-- 입력한 값을 기준으로 limit 역산
-- Learned limit으로 실시간 퍼센트 계산
-
-### 3. Override 메커니즘
-- 세션/주간 각각 독립적으로 관리
-- 세션 종료 시까지 고정 기준 유지
-- 토큰 증가에 따라 동적으로 퍼센트 업데이트
-
-### 4. Global Fallback Limit
-- 모든 세션의 learned limit을 가중 평균으로 계산
-- 새 세션 또는 데이터 부족 시 fallback limit 사용
-- 각 세션은 독립적으로 학습을 계속하며 점진적으로 정확도 향상
-
-## 🎯 Calibration 사용법
-
-### 기본 사용
-```bash
-# Claude Code에서 /usage 명령 실행 후
-# Session Output: 35% 확인
-
-# 보정
-claude-calibrate 35
-
-# 세션 + 주간 동시 보정
-claude-calibrate 35 56
-```
-
-### 결과
-- **즉시 반영**: SwiftBar에 입력값 즉시 표시
-- **실시간 계산**: 토큰 증가 시 자동으로 퍼센트 업데이트
-- **세션별 관리**: 각 세션마다 독립적으로 유지
-
-### 상태 확인
-```bash
-# Calibration 상태 확인
-claude-calibrate --status
-
-# 히스토리 조회
-claude-calibrate --history
-```
-
-## 🔧 주요 명령어
+### 1. Chrome Extension 설치
 
 ```bash
-# 현재 사용량 확인
-cat ~/.claude_usage.json | jq '.session.percentages'
-
-# Calibration 수행 (대화형)
-claude-calibrate-prompt
-
-# 세션 리셋 시간 변경 (자동으로 데몬 재시작 및 SwiftBar 갱신)
-claude-set-session-resets 20  # 20시로 변경
-
-# Daemon 수동 재시작 (필요 시)
-killall claude-usage-monitor
-~/.local/bin/claude-usage-monitor &
+# Extension 폴더 열기
+open ~/claude-monitor/chrome-extension/
 ```
 
-## 📁 구조
+1. Chrome 열기
+2. `chrome://extensions/` 접속
+3. **개발자 모드** 켜기
+4. **압축해제된 확장 프로그램을 로드합니다** 클릭
+5. `~/claude-monitor/chrome-extension` 폴더 선택
 
-```
-claude-monitor/
-├── README.md                    # 메인 사용 가이드
-├── CHANGELOG.md                 # 버전별 변경사항
-├── src/
-│   ├── monitor_daemon.py        # 메인 모니터링 데몬 (PID lock 포함)
-│   └── calibration_learner.py   # Calibration 시스템 (윈도우 검증, limit 검증)
-├── plugins/
-│   └── ClaudeUsage.1m.sh        # SwiftBar 플러그인 (상태 표시 개선)
-├── docs/                        # 개발자 문서
-│   ├── SESSION_RESTORE.md       # 세션 복원 가이드
-│   ├── SESSION_RESET_TIME.md    # 리셋 시간 설정
-│   └── LOGIC_PRIORITY.md        # 로직 우선순위 설명
-└── archive/                     # 레거시 문서 및 코드
-```
-
-## ⚙️ 설정
-
-### 세션 윈도우 (5시간 고정)
-기본값 (base_hour = 14):
-- 09:00-14:00
-- 14:00-19:00
-- 19:00-00:00
-- 00:00-04:00
-- 04:00-09:00
-
-변경 가능:
-```bash
-claude-set-session-resets 20  # 20시를 기준으로 변경
-```
-
-### 주간 윈도우 (7일 rolling)
-- 현재 시간부터 정확히 7일 전까지
-
-### 알림 임계값
-- 80% (첫 경고)
-- 90% (높은 사용량)
-- 95% (거의 한계)
-
-## 🎯 정확도
-
-- **Calibration 전**: ±3-5% 오차 (config limit 기반)
-- **Calibration 후**: ±0.5% 정확도 (learned limit 기반)
-- **Claude UI 기준**: Session 35% 입력 → 35.2% 실시간 계산
-
-### Calibration 작동 원리
-
-1. **토큰 역산**: 실제 사용량으로 API limit 계산
-   ```
-   limit = current_tokens / (actual_percentage / 100) / window_minutes
-   ```
-
-2. **실시간 계산**: Learned limit으로 퍼센트 계산
-   ```
-   percentage = (current_tokens / (learned_limit × window_minutes)) × 100
-   ```
-
-3. **세션별 관리**: 각 세션마다 독립적인 override
-
-4. **Global Fallback**: 데이터 부족 시 다른 세션의 learned limit 활용
-   ```
-   fallback_limit = weighted_average(모든 세션의 learned_limit)
-   weight = min(sample_count / 10.0, 1.0)
-   ```
-
-## 💻 여러 PC에서 사용
-
-**각 PC에서 독립적으로 작동합니다:**
-
-- PC-A, PC-B, PC-C 각각에 설치 가능
-- 각 PC마다 별도로 calibration 데이터 관리
-- PC 간 데이터 동기화 불필요
-- 설치 후 첫 세션에서 calibration 1회 수행 권장
-
-**예시:**
-```
-MacBook Pro  → 설치 → claude-calibrate 35 → ±0.5% 정확도
-Mac Mini     → 설치 → claude-calibrate 35 → ±0.5% 정확도
-iMac         → 설치 → claude-calibrate 35 → ±0.5% 정확도
-```
-
-## 🆕 v2.1 개선사항 (2025-10-22)
-
-### 1. Daemon 안정성 강화
-- **PID 파일 기반 중복 실행 방지**
-  - `~/.claude-monitor/daemon.pid` 파일로 프로세스 관리
-  - 중복 실행 시 자동 감지 및 경고
-  - 오래된 PID 파일 자동 정리
-  - `--force` 옵션으로 강제 시작 가능
-
-### 2. 윈도우 검증 시스템
-- **세션 윈도우 변경 시 자동 만료**
-  - 과거 윈도우의 override 자동 삭제
-  - 현재 윈도우와 일치하는 데이터만 적용
-  - 윈도우 불일치로 인한 오류 방지
-
-### 3. Calibration 정확도 개선
-- **실행 전 자동 데이터 업데이트**
-  - `claude-calibrate` 실행 전 monitor 강제 업데이트
-  - 최신 윈도우 데이터로 calibration 수행
-  - 오래된 데이터 사용으로 인한 오류 방지
-
-### 4. Learned Limit 검증
-- **범위 검증 자동화**
-  - 최소값: 100 TPM
-  - 최대값: 20,000 TPM
-  - 범위 벗어날 시 자동 조정 및 경고
-  - Override 적용 시에도 검증 수행
-
-### 5. SwiftBar UI 개선
-- **Calibration 상태 상세 표시**
-  ```
-  📚 Calibration Status
-  --Session: ⭐ Override (12.4%)
-  --  Window: 14:00-19:00
-  --  Learned limit: 1196 TPM
-  --  Original: 15.8%
-  --Weekly: ⭐ Override (11.2%)
-  ```
-  - 현재 윈도우 표시
-  - Learned limit TPM 값 표시
-  - 원본/Calibrated 퍼센트 비교
-  - 세션/주간 상태 분리 표시
-
-## 🔍 트러블슈팅
-
-### 메뉴바에 "⚠️ No Data" 표시
+### 2. Extension Watcher 시작
 
 ```bash
-# Daemon 확인
-ps aux | grep claude-usage-monitor
+claude-start-extension-watcher
+```
 
-# PID 파일 확인 (v2.1+)
-cat ~/.claude-monitor/daemon.pid
+### 3. SwiftBar 확인
 
-# 수동 실행
-python3 src/monitor_daemon.py --once
+SwiftBar가 이미 설치되어 있다면 자동으로 표시됩니다!
+
+## 💡 사용 방법
+
+### 자동 동기화 (권장)
+
+1. Chrome Extension "Scrape Now" 클릭
+2. 끝! 1-3초 후 SwiftBar 자동 업데이트 ✨
+
+### 수동 입력 (백업)
+
+Extension이 작동하지 않을 경우:
+
+```bash
+claude-manual-update 22 25  # session% weekly%
+```
+
+## 📊 SwiftBar 표시
+
+```
+🟢 22%                    ← Session 사용량
+├─ 📊 Session Usage
+│  ├─ Current: 22%
+│  └─ Source: Chrome Extension
+├─ 📈 Weekly Usage
+│  ├─ Current: 25%
+│  └─ Source: Chrome Extension
+└─ 🕐 Last Updated: 10/23 16:14
+```
+
+### 색상 의미
+
+- 🟢 **녹색** (0-49%): 안전
+- 🟡 **노란색** (50-79%): 주의
+- 🔴 **빨간색** (80-100%): 위험
+
+## 🔧 관리 명령어
+
+### Watcher 관리
+
+```bash
+# 상태 확인
+ps aux | grep claude-extension-watcher
+
+# 재시작
+killall claude-extension-watcher
+claude-start-extension-watcher
 
 # 로그 확인
-cat ~/.claude_usage.json | jq .
+tail -f /tmp/claude-extension-watcher.log
 ```
 
-### Calibration이 적용 안 됨
+### LaunchAgent (자동 시작)
 
 ```bash
-# 1. Override 확인 (현재 윈도우)
-cat ~/.claude-monitor/calibration_data.json | jq '.["14:00-19:00"].latest_override'
+# 상태 확인
+launchctl list | grep claude.extension
 
-# 2. Learned limit 확인 (v2.1+)
-cat ~/.claude_usage.json | jq '.calibration.session.learned_limit'
+# 로드
+launchctl load ~/Library/LaunchAgents/com.claude.extension.watcher.plist
 
-# 3. Daemon 재시작 (PID 체크 포함)
-cat ~/.claude-monitor/daemon.pid  # 현재 PID 확인
-killall claude-usage-monitor
-~/.local/bin/claude-usage-monitor &
-
-# 4. SwiftBar 새로고침
-open "swiftbar://refreshallplugins"
+# 언로드
+launchctl unload ~/Library/LaunchAgents/com.claude.extension.watcher.plist
 ```
 
-### SwiftBar 플러그인이 안 보임
+## 📁 파일 구조
+
+```
+~/claude-monitor/
+├── chrome-extension/          # Chrome Extension
+│   ├── manifest.json
+│   ├── background.js         # Service worker (DataURL 다운로드)
+│   ├── content.js            # 페이지 스크래핑
+│   ├── popup.html/js         # UI
+│   └── README.md
+├── README.md                  # 이 파일
+├── CHANGELOG.md               # 변경 이력
+├── WEB_EXTENSION_ONLY.md     # Web Extension 전용 가이드
+└── CHROME_EXTENSION_AUTO_SYNC.md  # 자동 동기화 가이드
+
+~/.local/bin/
+├── claude-extension-watcher       # 파일 감시자
+├── claude-start-extension-watcher # Watcher 시작
+├── claude-sync-from-extension     # 동기화 스크립트
+├── claude-manual-update           # 수동 입력
+└── claude-find-extension-id       # Extension ID 찾기
+
+~/Library/Application Support/SwiftBar/
+└── ClaudeUsage.1m.sh             # SwiftBar 플러그인
+
+/tmp/
+└── claude-web-usage.json         # 현재 데이터
+```
+
+## 🐛 문제 해결
+
+### Extension이 작동하지 않음
+
+1. `chrome://extensions/` 에서 Extension 새로고침
+2. 개발자 도구 Console 확인
+3. `claude-manual-update` 명령어로 수동 입력
+
+### SwiftBar 업데이트 안 됨
 
 ```bash
-# 권한 확인
-chmod +x ~/Library/Application\ Support/SwiftBar/ClaudeUsage.1m.sh
-
-# 플러그인 재설치
-cp plugins/ClaudeUsage.1m.sh ~/Library/Application\ Support/SwiftBar/
-
 # SwiftBar 재시작
 killall SwiftBar && open -a SwiftBar
+
+# 데이터 파일 확인
+cat /tmp/claude-web-usage.json
 ```
 
-## 🛠️ 기술 스택
+### Watcher가 작동하지 않음
 
-- **Python 3.9+** - Daemon 및 calibration 시스템
-- **Bash** - SwiftBar 플러그인 및 CLI 도구
-- **jq** - JSON 처리
-- **SwiftBar** - macOS 메뉴바 UI
-- **launchd** - 백그라운드 서비스 (선택사항)
+```bash
+# Watcher 재시작
+killall claude-extension-watcher
+claude-start-extension-watcher
 
-## 📝 요구사항
+# 로그 확인
+tail -20 /tmp/claude-extension-watcher.log
+```
 
-- macOS (10.15 이상)
-- Python 3.9+
-- **Claude Code (Team Premium 플랜)**
-- SwiftBar
+## 📝 변경 이력
 
-### ⚠️ 중요 사항
+### v3.0 (2025-10-23) - Web Extension Only
 
-**이 모니터는 Team Premium 플랜을 기준으로 개발되었습니다.**
+- ✅ Monitor daemon 완전 제거
+- ✅ Chrome Extension 전용 (DataURL 방식)
+- ✅ fswatch 기반 자동 동기화 (1-3초)
+- ✅ SwiftBar 플러그인 간소화 (277줄 → 100줄)
+- ✅ 로컬 시간 표시
+- ✅ Actions 버튼 정리
 
-- ✅ **Team Premium**: 정확도 ±0.5% (calibration 후)
-- ⚠️ **개인 구독 (Pro, Max 등)**: 정확하지 않을 수 있음
-  - 개인 구독 플랜은 limit 구조가 다름
-  - Calibration 시스템으로 어느정도 대응 가능하나 테스트 안됨
+### v2.1 (2025-10-22)
 
-**권장**: Team Premium 플랜 사용자만 설치하시기 바랍니다.
+- Monitor daemon + Calibration 시스템
+- 학습 기반 한도 예측
 
-## 📚 개발자 문서
+### v1.0 (2025-10-16)
 
-프로젝트 개발 및 디버깅을 위한 상세 문서는 `docs/` 폴더에 있습니다:
+- 초기 버전
+- Monitor daemon 기반
 
-- [docs/SESSION_RESTORE.md](docs/SESSION_RESTORE.md) - 세션 복원 및 상태 파악 가이드
-- [docs/LOGIC_PRIORITY.md](docs/LOGIC_PRIORITY.md) - Calibration 로직 및 우선순위
-- [docs/SESSION_RESET_TIME.md](docs/SESSION_RESET_TIME.md) - 세션 리셋 시간 설정 방법
+## 🎯 기술 스택
+
+- **Chrome Extension**: Manifest V3, Service Worker
+- **Watcher**: fswatch (macOS)
+- **SwiftBar**: Bash script
+- **자동 시작**: LaunchAgent (macOS)
+
+## 📖 추가 문서
+
+- [WEB_EXTENSION_ONLY.md](./WEB_EXTENSION_ONLY.md) - Web Extension 전용 상세 가이드
+- [CHROME_EXTENSION_AUTO_SYNC.md](./CHROME_EXTENSION_AUTO_SYNC.md) - 자동 동기화 설명
+- [chrome-extension/README.md](./chrome-extension/README.md) - Extension 개발 가이드
+- [CHANGELOG.md](./CHANGELOG.md) - 전체 변경 이력
 
 ## 🤝 기여
 
-이슈와 PR은 언제나 환영합니다!
+이슈 및 PR은 환영합니다!
 
-## 📄 라이선스
+## 📄 라이센스
 
 MIT License
 
-## 🙏 감사
-
-- [SwiftBar](https://github.com/swiftbar/SwiftBar) - macOS 메뉴바 프레임워크
-- [Claude Code](https://claude.ai/code) - Anthropic의 AI 코딩 도구
-
 ---
 
-**Made for Team Premium users** 🚀
+**Made with ❤️ for Claude Team Users**

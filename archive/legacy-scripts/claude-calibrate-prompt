@@ -1,0 +1,51 @@
+#!/bin/bash
+# SwiftBar용 Calibration 프롬프트 스크립트
+# 터미널에서 입력 받아서 claude-calibrate 실행
+
+# 현재 사용량 표시
+USAGE_FILE="$HOME/.claude_usage.json"
+SESSION_PCT=$(jq -r '.session.percentages.max_percentage // 0' "$USAGE_FILE" 2>/dev/null)
+WEEKLY_PCT=$(jq -r '.weekly.percentages.max_percentage // 0' "$USAGE_FILE" 2>/dev/null)
+
+echo "============================================================"
+echo "📊 Claude Usage Calibration"
+echo "============================================================"
+echo ""
+echo "Monitor shows:"
+echo "  Session: ${SESSION_PCT}%"
+echo "  Weekly:  ${WEEKLY_PCT}%"
+echo ""
+echo "Please run 'claude usage' and enter actual values below."
+echo "Format: session weekly (e.g., '3.2 35.7')"
+echo "Or just session (e.g., '3.2')"
+echo ""
+echo -n "Enter values: "
+
+# 사용자 입력 받기
+read -r USER_INPUT
+
+# 공백으로 분리
+read -r SESSION WEEKLY <<< "$USER_INPUT"
+
+# 실행
+if [ -z "$SESSION" ]; then
+    echo ""
+    echo "⚠️  No values entered. Calibration cancelled."
+    echo ""
+    echo "Press any key to close..."
+    read -n 1
+    exit 0
+fi
+
+echo ""
+if [ -n "$WEEKLY" ]; then
+    echo "Running: claude-calibrate $SESSION $WEEKLY"
+    ~/.local/bin/claude-calibrate "$SESSION" "$WEEKLY"
+else
+    echo "Running: claude-calibrate $SESSION"
+    ~/.local/bin/claude-calibrate "$SESSION"
+fi
+
+echo ""
+echo "Press any key to close..."
+read -n 1

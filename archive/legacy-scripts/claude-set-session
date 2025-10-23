@@ -1,0 +1,119 @@
+#!/bin/bash
+# Claude Session Time Configuration Tool
+# 세션 시작 시간 설정 (5시간 윈도우 기준)
+
+CONFIG_FILE="$HOME/.claude-monitor/config.json"
+
+# Usage 출력
+show_usage() {
+    echo ""
+    echo "Usage: claude-set-session <hour>"
+    echo ""
+    echo "Set the base hour for 5-hour session windows."
+    echo ""
+    echo "Examples:"
+    echo "  claude-set-session 14  # 14:00-19:00, 19:00-00:00, 00:00-05:00, 05:00-10:00, 10:00-14:00"
+    echo "  claude-set-session 15  # 15:00-20:00, 20:00-01:00, 01:00-06:00, 06:00-11:00, 11:00-15:00"
+    echo "  claude-set-session 16  # 16:00-21:00, 21:00-02:00, 02:00-07:00, 07:00-12:00, 12:00-16:00"
+    echo ""
+    echo "Note: All windows are 5 hours long. Last window completes the 24-hour cycle."
+    echo ""
+    echo "Current configuration:"
+    if [ -f "$CONFIG_FILE" ]; then
+        CURRENT=$(jq -r '.reset_schedule.session_base_hour // 14' "$CONFIG_FILE")
+        echo "  Base hour: $CURRENT"
+        echo ""
+        echo "  Session windows:"
+        CURRENT_START=$CURRENT
+        for i in {0..4}; do
+            START=$CURRENT_START
+            END=$((($START + 5) % 24))
+            printf "  - %02d:00-%02d:00\n" $START $END
+            CURRENT_START=$END
+        done
+    else
+        echo "  Configuration file not found!"
+    fi
+    echo ""
+}
+
+# 인자 확인
+if [ $# -eq 0 ] || [ "$1" == "--help" ] || [ "$1" == "-h" ]; then
+    show_usage
+    exit 0
+fi
+
+# hour 파싱
+NEW_HOUR="$1"
+
+# 숫자 확인
+if ! [[ "$NEW_HOUR" =~ ^[0-9]+$ ]]; then
+    echo "❌ Error: Hour must be a number (0-23)"
+    exit 1
+fi
+
+# 범위 확인
+if [ "$NEW_HOUR" -lt 0 ] || [ "$NEW_HOUR" -gt 23 ]; then
+    echo "❌ Error: Hour must be between 0 and 23"
+    exit 1
+fi
+
+# Config 파일 확인
+if [ ! -f "$CONFIG_FILE" ]; then
+    echo "❌ Error: Configuration file not found at $CONFIG_FILE"
+    echo "   Please run setup first."
+    exit 1
+fi
+
+# 현재 설정 표시
+CURRENT=$(jq -r '.reset_schedule.session_base_hour // 14' "$CONFIG_FILE")
+echo ""
+echo "📊 Current session base hour: $CURRENT"
+echo ""
+echo "🔄 Changing to: $NEW_HOUR"
+echo ""
+
+# New session windows 계산
+echo "New session windows:"
+CURRENT_START=$NEW_HOUR
+for i in {0..4}; do
+    START=$CURRENT_START
+    END=$((($START + 5) % 24))
+    printf "  - %02d:00-%02d:00\n" $START $END
+    CURRENT_START=$END
+done
+echo ""
+
+# 확인 프롬프트
+read -p "Continue? (y/N): " -n 1 -r
+echo ""
+
+if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    echo "❌ Cancelled"
+    exit 0
+fi
+
+# JSON 업데이트 (jq 사용)
+TMP_FILE=$(mktemp)
+jq ".reset_schedule.session_base_hour = $NEW_HOUR" "$CONFIG_FILE" > "$TMP_FILE"
+
+if [ $? -eq 0 ]; then
+    mv "$TMP_FILE" "$CONFIG_FILE"
+    echo ""
+    echo "✅ Session base hour updated to $NEW_HOUR"
+    echo ""
+    echo "⚠️  Important:"
+    echo "  1. Restart monitor daemon to apply changes"
+    echo "  2. Existing calibration data uses old window keys"
+    echo "  3. You may need to recalibrate for new windows"
+    echo ""
+    echo "Commands:"
+    echo "  killall claude-usage-monitor  # Stop daemon"
+    echo "  ~/.local/bin/claude-usage-monitor &  # Restart daemon"
+    echo "  claude-calibrate --status  # Check calibration data"
+    echo ""
+else
+    rm "$TMP_FILE"
+    echo "❌ Error: Failed to update configuration"
+    exit 1
+fi

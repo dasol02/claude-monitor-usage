@@ -121,15 +121,16 @@ async function sendToMonitor(data) {
     console.log('Sending to monitor:', data);
 
     // Chrome extension은 직접 파일 쓰기 불가
-    // → Downloads API 사용하여 임시 파일 생성
+    // → Downloads API + Data URL 사용
     const jsonStr = JSON.stringify(data);
-    const blob = new Blob([jsonStr], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
+    // Service Worker에서는 URL.createObjectURL 사용 불가
+    // Data URL 방식 사용
+    const dataUrl = 'data:application/json;base64,' + btoa(jsonStr);
 
     // 자동 다운로드 (사용자 개입 없음)
     await chrome.downloads.download({
-      url: url,
-      filename: '.claude-monitor/auto-usage.json',
+      url: dataUrl,
+      filename: 'claude-auto-usage.json',
       conflictAction: 'overwrite',
       saveAs: false
     });

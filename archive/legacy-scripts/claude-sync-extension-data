@@ -1,0 +1,16 @@
+#!/bin/bash
+# Downloads 폴더의 Extension 파일을 /tmp로 복사
+# LaunchAgent가 /tmp 폴더를 모니터링함
+
+SOURCE_FILE="$HOME/Downloads/claude-auto-usage.json"
+DEST_FILE="/tmp/claude-auto-usage.json"
+
+if [ -f "$SOURCE_FILE" ]; then
+    # 파일 복사
+    cp "$SOURCE_FILE" "$DEST_FILE" 2>/dev/null
+
+    # 원본 삭제 (try-catch)
+    rm "$SOURCE_FILE" 2>/dev/null || true
+
+    echo "[SYNC] $(date): Synced extension data to /tmp"
+fi

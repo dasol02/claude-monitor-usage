@@ -2,6 +2,47 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.0] - 2025-10-23
+
+### 🎯 Major Changes - Web Extension Only
+
+- **완전 자동화**: Chrome Extension 기반 자동 동기화 (1-3초)
+- **Monitor daemon 제거**: Python daemon 완전 제거, Extension 전용
+- **SwiftBar 간소화**: 277줄 → 100줄 (64% 감소)
+
+### ✨ Added
+
+- Chrome Extension DataURL 방식 다운로드
+- fswatch 기반 자동 파일 감지
+- Extension Watcher (claude-extension-watcher)
+- 로컬 시간 표시 (UTC → KST 자동 변환)
+- 수동 입력 명령어 (claude-manual-update)
+- Extension ID 찾기 도구 (claude-find-extension-id)
+
+### 🔧 Changed
+
+- SwiftBar Actions 버튼 제거 (불필요한 기능 정리)
+- 데이터 파일 위치 변경: ~/.claude_usage.json → /tmp/claude-web-usage.json
+- Extension watcher LaunchAgent 추가 (자동 시작)
+
+### 🗑️ Removed
+
+- Monitor daemon (claude-usage-monitor)
+- Calibration 시스템 (calibration_learner.py)
+- Limit learner (limit_learner.py)
+- Config manager (config_manager.py)
+- 모든 monitor daemon 관련 스크립트들
+- 불필요한 LaunchAgents
+
+### 📝 Documentation
+
+- README.md 전면 개편 (v3.0 기준)
+- WEB_EXTENSION_ONLY.md 업데이트
+- CHROME_EXTENSION_AUTO_SYNC.md 업데이트
+- 레거시 파일 archive로 이동
+
+---
+
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 

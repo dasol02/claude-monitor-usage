@@ -8,7 +8,8 @@
     "alarms",
     "tabs",
     "activeTab",
-    "nativeMessaging"
+    "nativeMessaging",
+    "downloads"
   ],
   "host_permissions": [
     "https://claude.ai/*"

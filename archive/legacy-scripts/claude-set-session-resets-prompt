@@ -1,0 +1,54 @@
+#!/bin/bash
+# Interactive prompt for setting session reset time
+
+CONFIG_FILE="$HOME/.claude-monitor/config.json"
+
+# 현재 설정 표시
+if [ -f "$CONFIG_FILE" ]; then
+    BASE_HOUR=$(jq -r '.reset_schedule.session_base_hour // 14' "$CONFIG_FILE")
+    RESET_HOUR=$((($BASE_HOUR + 5) % 24))
+
+    echo ""
+    echo "╔════════════════════════════════════════════════╗"
+    echo "║   Claude Session Reset Time Configuration     ║"
+    echo "╚════════════════════════════════════════════════╝"
+    echo ""
+    echo "Current reset time: $(printf '%02d:00' $RESET_HOUR)"
+    echo ""
+    echo "Current session windows:"
+    CURRENT_START=$BASE_HOUR
+    for i in {0..4}; do
+        START=$CURRENT_START
+        END=$((($START + 5) % 24))
+        printf "  %02d:00-%02d:00\n" $START $END
+        CURRENT_START=$END
+    done
+    echo ""
+else
+    echo "❌ Configuration file not found!"
+    exit 1
+fi
+
+# 사용자 입력
+echo "When does your session reset?"
+echo "(Check 'claude usage' or '/usage' to see when it resets)"
+echo ""
+read -p "Enter reset hour (0-23, or press Enter to cancel): " NEW_RESET
+
+# 취소
+if [ -z "$NEW_RESET" ]; then
+    echo ""
+    echo "❌ Cancelled"
+    exit 0
+fi
+
+# 유효성 검사
+if ! [[ "$NEW_RESET" =~ ^[0-9]+$ ]] || [ "$NEW_RESET" -lt 0 ] || [ "$NEW_RESET" -gt 23 ]; then
+    echo ""
+    echo "❌ Invalid hour. Must be 0-23."
+    exit 1
+fi
+
+# claude-set-session-resets 호출
+echo ""
+echo "y" | claude-set-session-resets "$NEW_RESET"

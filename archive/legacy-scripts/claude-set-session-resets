@@ -1,0 +1,143 @@
+#!/bin/bash
+# Claude Session Reset Time Configuration Tool
+# 세션 리셋 시간 입력 → 자동으로 base hour 계산
+
+CONFIG_FILE="$HOME/.claude-monitor/config.json"
+
+# Usage 출력
+show_usage() {
+    echo ""
+    echo "Usage: claude-set-session-resets <hour>"
+    echo ""
+    echo "Set the session reset time. The base hour will be calculated automatically."
+    echo ""
+    echo "Examples:"
+    echo "  claude-set-session-resets 19  # Sessions reset at 19:00 (current: 14:00-19:00)"
+    echo "  claude-set-session-resets 20  # Sessions reset at 20:00 (current: 15:00-20:00)"
+    echo "  claude-set-session-resets 8   # Sessions reset at 08:00 (current: 03:00-08:00)"
+    echo ""
+
+    if [ -f "$CONFIG_FILE" ]; then
+        BASE_HOUR=$(jq -r '.reset_schedule.session_base_hour // 14' "$CONFIG_FILE")
+        RESET_HOUR=$((($BASE_HOUR + 5) % 24))
+
+        echo "Current configuration:"
+        echo "  Reset time: $(printf '%02d:00' $RESET_HOUR)"
+        echo "  Base hour: $BASE_HOUR"
+        echo ""
+        echo "  Current session windows:"
+        CURRENT_START=$BASE_HOUR
+        for i in {0..4}; do
+            START=$CURRENT_START
+            END=$((($START + 5) % 24))
+            printf "  - %02d:00-%02d:00" $START $END
+            if [ $i -eq 0 ]; then
+                echo " ← First session resets at $(printf '%02d:00' $END)"
+            else
+                echo ""
+            fi
+            CURRENT_START=$END
+        done
+    else
+        echo "Configuration file not found!"
+    fi
+    echo ""
+}
+
+# 인자 확인
+if [ $# -eq 0 ] || [ "$1" == "--help" ] || [ "$1" == "-h" ]; then
+    show_usage
+    exit 0
+fi
+
+# Reset hour 파싱
+RESET_HOUR="$1"
+
+# 숫자 확인
+if ! [[ "$RESET_HOUR" =~ ^[0-9]+$ ]]; then
+    echo "❌ Error: Hour must be a number (0-23)"
+    exit 1
+fi
+
+# 범위 확인
+if [ "$RESET_HOUR" -lt 0 ] || [ "$RESET_HOUR" -gt 23 ]; then
+    echo "❌ Error: Hour must be between 0 and 23"
+    exit 1
+fi
+
+# Config 파일 확인
+if [ ! -f "$CONFIG_FILE" ]; then
+    echo "❌ Error: Configuration file not found at $CONFIG_FILE"
+    exit 1
+fi
+
+# Base hour 계산 (reset_hour - 5)
+NEW_BASE_HOUR=$((($RESET_HOUR - 5 + 24) % 24))
+
+# 현재 설정 표시
+CURRENT_BASE=$(jq -r '.reset_schedule.session_base_hour // 14' "$CONFIG_FILE")
+CURRENT_RESET=$((($CURRENT_BASE + 5) % 24))
+
+echo ""
+echo "📊 Current reset time: $(printf '%02d:00' $CURRENT_RESET) (base: $CURRENT_BASE)"
+echo ""
+echo "🔄 Changing reset time to: $(printf '%02d:00' $RESET_HOUR)"
+echo "   → Calculated base hour: $NEW_BASE_HOUR"
+echo ""
+
+# New session windows 계산
+echo "New session windows:"
+CURRENT_START=$NEW_BASE_HOUR
+for i in {0..4}; do
+    START=$CURRENT_START
+    END=$((($START + 5) % 24))
+    printf "  - %02d:00-%02d:00" $START $END
+    if [ $i -eq 0 ]; then
+        echo " ← First session resets at $(printf '%02d:00' $END)"
+    else
+        echo ""
+    fi
+    CURRENT_START=$END
+done
+echo ""
+
+# 확인 프롬프트
+read -p "Continue? (y/N): " -n 1 -r
+echo ""
+
+if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    echo "❌ Cancelled"
+    exit 0
+fi
+
+# JSON 업데이트
+TMP_FILE=$(mktemp)
+jq ".reset_schedule.session_base_hour = $NEW_BASE_HOUR" "$CONFIG_FILE" > "$TMP_FILE"
+
+if [ $? -eq 0 ]; then
+    mv "$TMP_FILE" "$CONFIG_FILE"
+    echo ""
+    echo "✅ Session reset time updated to $(printf '%02d:00' $RESET_HOUR)"
+    echo "   Base hour set to: $NEW_BASE_HOUR"
+    echo ""
+
+    # 자동으로 데몬 재시작 및 SwiftBar 갱신
+    echo "🔄 Restarting monitor daemon..."
+    killall claude-usage-monitor 2>/dev/null
+    sleep 0.5
+    ~/.local/bin/claude-usage-monitor &
+    echo "✅ Monitor daemon restarted"
+    echo ""
+
+    echo "🔄 Refreshing SwiftBar..."
+    open "swiftbar://refreshallplugins" 2>/dev/null
+    echo "✅ SwiftBar refreshed"
+    echo ""
+
+    echo "💡 Tip: If needed, recalibrate with: claude-calibrate <actual_%>"
+    echo ""
+else
+    rm "$TMP_FILE"
+    echo "❌ Error: Failed to update configuration"
+    exit 1
+fi

@@ -1,0 +1,14 @@
+#!/bin/bash
+# Claude Monitor 재시작 (install/uninstall 없이)
+
+echo "🔄 Reloading Claude Monitor..."
+
+# 1. 모니터 데몬 재시작
+echo "   Restarting monitor daemon..."
+launchctl kickstart -k gui/$UID/com.claude.usage-monitor
+
+# 2. SwiftBar 갱신
+echo "   Refreshing SwiftBar..."
+open "swiftbar://refreshall" 2>/dev/null || true
+
+echo "✅ Done! Changes should be visible in ~5 seconds"

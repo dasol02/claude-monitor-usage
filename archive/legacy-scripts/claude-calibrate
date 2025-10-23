@@ -1,0 +1,43 @@
+#!/bin/bash
+# Claude Usage Calibration Tool
+# 모니터 값과 실제 사용량을 비교하여 학습
+#
+# Usage:
+#   claude-calibrate 2.3 35.5  # Session and weekly
+#   claude-calibrate 2.3       # Session only
+#   claude-calibrate --help    # Show help
+
+# Force monitor update BEFORE calibration to get latest window data
+if [ -n "$1" ] && [[ ! "$1" =~ ^-- ]]; then
+    ~/.local/bin/claude-usage-monitor --once > /dev/null 2>&1
+fi
+
+# Run calibration
+python3 ~/.local/bin/calibration_learner.py "$@"
+EXIT_CODE=$?
+
+# If calibration succeeded (not --status, --history, or --help), trigger daemon update
+if [ $EXIT_CODE -eq 0 ] && [ -n "$1" ] && [[ ! "$1" =~ ^-- ]]; then
+    echo ""
+    echo "🔄 Updating monitor..."
+    # Trigger daemon to update once
+    ~/.local/bin/claude-usage-monitor --once > /dev/null 2>&1
+
+    # Force SwiftBar refresh (multiple methods)
+    echo "🔄 Refreshing SwiftBar..."
+
+    # Method 1: URL scheme
+    open "swiftbar://refreshallplugins" 2>/dev/null
+
+    # Method 2: Touch plugin file to trigger refresh
+    touch "$HOME/Library/Application Support/SwiftBar/ClaudeUsage.1m.sh" 2>/dev/null
+
+    # Method 3: Kill and restart SwiftBar (as fallback)
+    if ! pgrep -x "SwiftBar" > /dev/null; then
+        open -a SwiftBar 2>/dev/null
+    fi
+
+    echo "✅ Monitor updated and SwiftBar refreshed!"
+fi
+
+exit $EXIT_CODE

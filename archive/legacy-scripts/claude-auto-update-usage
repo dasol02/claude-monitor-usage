@@ -1,0 +1,54 @@
+#!/bin/bash
+# Chrome Extension에서 생성한 usage 파일을 읽어서 자동 calibration
+# 위치: ~/.local/bin/claude-auto-update-usage
+
+# Step 1: Sync from Downloads to /tmp
+SOURCE_FILE="$HOME/Downloads/claude-auto-usage.json"
+USAGE_FILE="/tmp/claude-auto-usage.json"
+
+if [ -f "$SOURCE_FILE" ]; then
+    cp "$SOURCE_FILE" "$USAGE_FILE" 2>/dev/null
+    rm "$SOURCE_FILE" 2>/dev/null || true
+    echo "[SYNC] $(date): Synced extension data"
+fi
+
+# Step 2: Process the file
+echo "[DEBUG] $(date): Script started"
+echo "[DEBUG] PATH=$PATH"
+echo "[DEBUG] which jq: $(which jq 2>&1)"
+echo "[DEBUG] which claude-calibrate: $(which claude-calibrate 2>&1)"
+
+if [ -f "$USAGE_FILE" ]; then
+    echo "[DEBUG] File exists: $USAGE_FILE"
+    echo "[DEBUG] File content: $(cat "$USAGE_FILE")"
+
+    # JSON 파싱
+    SESSION=$(jq -r '.session' "$USAGE_FILE" 2>&1)
+    WEEKLY=$(jq -r '.weekly' "$USAGE_FILE" 2>&1)
+
+    echo "[DEBUG] SESSION='$SESSION'"
+    echo "[DEBUG] WEEKLY='$WEEKLY'"
+    echo "[DEBUG] Test conditions:"
+    echo "[DEBUG]   SESSION != null: $([ "$SESSION" != "null" ] && echo true || echo false)"
+    echo "[DEBUG]   WEEKLY != null: $([ "$WEEKLY" != "null" ] && echo true || echo false)"
+    echo "[DEBUG]   -n SESSION: $([ -n "$SESSION" ] && echo true || echo false)"
+
+    if [ "$SESSION" != "null" ] && [ "$WEEKLY" != "null" ] && [ -n "$SESSION" ]; then
+        echo "📊 Auto-updating usage from Chrome Extension"
+        echo "   Session: ${SESSION}%, Weekly: ${WEEKLY}%"
+
+        # Calibrate (자동으로 monitor 업데이트 & SwiftBar 새로고침)
+        claude-calibrate $SESSION $WEEKLY
+
+        # 파일 삭제 (처리 완료)
+        rm "$USAGE_FILE"
+
+        echo "✅ Usage updated successfully!"
+    else
+        echo "⚠️  Invalid data in usage file"
+        rm "$USAGE_FILE"
+    fi
+else
+    # 파일 없음 (정상 - 아직 Extension이 생성 안 함)
+    exit 0
+fi
