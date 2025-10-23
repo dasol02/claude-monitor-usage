@@ -14,7 +14,9 @@
   },
   "reset_schedule": {
     "type": "rolling_5h",
-    "description": "마지막 사용 시점부터 5시간 후 리셋"
+    "description": "마지막 사용 시점부터 5시간 후 리셋",
+    "session_base_hour": 14,
+    "note": "세션 시작 기준 시간 (14 = 14:00-19:00, 19:00-00:00 등). 변경 시: 15 = 15:00-20:00, 20:00-01:00"
   },
   "overage_pricing": {
     "sonnet_4_input": 3.0,

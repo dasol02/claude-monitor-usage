@@ -124,18 +124,24 @@ def analyze_and_learn_limits():
     for session in history['sessions']:
         peak = session['peak_usage']
 
-        # 80% 이상 사용한 세션만 분석 (신뢰도 높은 데이터)
-        if peak['percentage'] >= 80:
+        # 50% 이상 사용한 세션 분석 (더 많은 데이터 수집)
+        # 높은 퍼센트일수록 신뢰도가 높으므로 가중치 적용
+        if peak['percentage'] >= 50:
             # 실제 limit 역산: output_tokens / (percentage / 100)
             # 예: 140,000 tokens / 0.46 = 304,348 total tokens
             # 304,348 tokens / 300 minutes = 1,014 TPM
             estimated_total_tokens = peak['output_tokens'] / (peak['percentage'] / 100)
             estimated_tpm = estimated_total_tokens / 300  # 5시간 = 300분
 
+            # 신뢰도 가중치: 높은 퍼센트일수록 신뢰도 높음
+            # 50% → 0.5, 70% → 0.7, 90% → 0.9
+            confidence_weight = peak['percentage'] / 100
+
             session_data_points.append({
                 'tpm': estimated_tpm,
                 'percentage': peak['percentage'],
                 'tokens': peak['output_tokens'],
+                'weight': confidence_weight,
                 'window_start': session['window_start']
             })
 
@@ -146,17 +152,26 @@ def analyze_and_learn_limits():
         # 최소 3개의 데이터 포인트 필요
         tpm_values = [dp['tpm'] for dp in session_data_points]
 
-        # P90 계산
-        p90_tpm = statistics.quantiles(tpm_values, n=10)[8]  # 90th percentile
+        # 가중 평균 계산 (높은 퍼센트에 더 높은 가중치)
+        weights = [dp['weight'] for dp in session_data_points]
+        weighted_tpm = sum(t * w for t, w in zip(tpm_values, weights)) / sum(weights)
 
-        # 신뢰도 계산 (데이터 포인트 수에 비례)
-        confidence = min(len(session_data_points) / 10, 0.95)  # 최대 95%
+        # P90도 함께 계산 (보정용)
+        p90_tpm = statistics.quantiles(tpm_values, n=10)[8] if len(tpm_values) >= 10 else max(tpm_values)
+
+        # 가중 평균과 P90의 중간값 사용 (더 안정적)
+        final_tpm = (weighted_tpm * 0.7 + p90_tpm * 0.3)
+
+        # 신뢰도 계산 (데이터 포인트 수 + 평균 가중치)
+        avg_weight = sum(weights) / len(weights)
+        confidence = min(len(session_data_points) / 10 * avg_weight, 0.95)  # 최대 95%
 
         learned_session_limit = {
-            'output_tpm': round(p90_tpm),
+            'output_tpm': round(final_tpm),
             'confidence': round(confidence, 2),
             'data_points': len(session_data_points),
             'status': 'learned',
+            'avg_percentage': round(sum(dp['percentage'] for dp in session_data_points) / len(session_data_points), 1),
             'last_updated': datetime.now(ZoneInfo('Asia/Seoul')).isoformat(),
             'sample_data': session_data_points[-5:]  # 최근 5개 샘플
         }

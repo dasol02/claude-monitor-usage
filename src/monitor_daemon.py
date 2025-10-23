@@ -6,24 +6,25 @@ Claude Usage Monitor - Daemon v2
 
 import json
 import os
+import sys
 import time
 from pathlib import Path
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 import argparse
 
-# Limit learner import
+# Calibration learner import
 try:
-    from limit_learner import record_session_snapshot, analyze_and_learn_limits, get_effective_limits
-    LIMIT_LEARNING_ENABLED = True
+    from calibration_learner import get_calibrated_value, get_session_window_key, get_weekly_window_key
+    CALIBRATION_ENABLED = True
 except ImportError:
-    LIMIT_LEARNING_ENABLED = False
-    print("⚠️  Limit learning module not found. Using static limits.")
+    CALIBRATION_ENABLED = False
 
 
 CONFIG_FILE = Path.home() / '.claude-monitor' / 'config.json'
 OUTPUT_FILE = Path.home() / '.claude_usage.json'
 NOTIFICATION_STATE_FILE = Path.home() / '.claude-monitor' / 'notification_state.json'
+PID_FILE = Path.home() / '.claude-monitor' / 'daemon.pid'
 
 
 def load_config():
@@ -117,41 +118,51 @@ def get_rolling_session_window(session_files, now, tz):
     return window_start, window_end, next_reset
 
 
-def get_fixed_session_window(now):
+def get_fixed_session_window(now, config=None):
     """
-    고정된 5시간 세션 윈도우 계산 (기존 방식)
+    고정된 5시간 세션 윈도우 계산 (config 기반)
 
-    결제일 기준으로 고정된 시간대:
-    - 10:00 ~ 15:00
-    - 15:00 ~ 20:00
-    - 20:00 ~ 01:00
-    - 01:00 ~ 06:00
-    - 06:00 ~ 11:00 (다음날)
+    config의 session_base_hour를 기준으로 5시간 윈도우 계산
+    예: base=14 → 14:00-19:00, 19:00-00:00, 00:00-04:00, 04:00-09:00, 09:00-14:00
+    예: base=15 → 15:00-20:00, 20:00-01:00, 01:00-05:00, 05:00-10:00, 10:00-15:00
 
     Returns:
         tuple: (window_start, window_end, next_reset)
     """
+    # Config에서 base hour 읽기 (기본: 14)
+    base_hour = 14
+    if config and 'reset_schedule' in config:
+        base_hour = config['reset_schedule'].get('session_base_hour', 14)
+
     hour = now.hour
 
-    # 현재 시간이 속한 5시간 윈도우 찾기
-    if 10 <= hour < 15:
-        start_hour = 10
-        end_hour = 15
-    elif 15 <= hour < 20:
-        start_hour = 15
-        end_hour = 20
-    elif 20 <= hour < 24:
-        start_hour = 20
-        end_hour = 1  # 다음날 01:00
-    elif 1 <= hour < 6:
-        start_hour = 1
-        end_hour = 6
-    elif 6 <= hour < 10:
-        start_hour = 6
-        end_hour = 11
-    else:  # 0시 ~ 1시
-        start_hour = 20  # 전날 20:00
-        end_hour = 1
+    # Base hour를 기준으로 5개의 5시간 윈도우 생성
+    windows = []
+    current_start = base_hour
+    for _ in range(5):
+        current_end = (current_start + 5) % 24
+        windows.append((current_start, current_end))
+        current_start = current_end
+
+    # 현재 시간이 속한 윈도우 찾기
+    start_hour = None
+    end_hour = None
+    for win_start, win_end in windows:
+        if win_end < win_start:  # 자정을 넘어가는 경우
+            if hour >= win_start or hour < win_end:
+                start_hour = win_start
+                end_hour = win_end
+                break
+        else:  # 같은 날 내
+            if win_start <= hour < win_end:
+                start_hour = win_start
+                end_hour = win_end
+                break
+
+    # 찾지 못하면 기본값 (base_hour 시작)
+    if start_hour is None:
+        start_hour = base_hour
+        end_hour = (base_hour + 5) % 24
 
     # 시작 시간 계산
     if hour < start_hour:
@@ -280,7 +291,11 @@ def calculate_usage_percentage(usage, limits):
     total_output_limit = limits['output_tokens_per_minute'] * window_minutes
 
     # 퍼센트 계산
-    input_pct = (usage['input_tokens'] / total_input_limit) * 100 if total_input_limit > 0 else 0
+    # Input: input_tokens + cache_creation_tokens (캐시 생성은 input으로 카운트)
+    input_total = usage['input_tokens'] + usage['cache_creation_tokens']
+    input_pct = (input_total / total_input_limit) * 100 if total_input_limit > 0 else 0
+
+    # Output: output_tokens만 (실제 생성된 토큰)
     output_pct = (usage['output_tokens'] / total_output_limit) * 100 if total_output_limit > 0 else 0
 
     # 가장 높은 퍼센트 사용
@@ -480,46 +495,17 @@ def monitor_once(config):
     # 현재 시간
     now = datetime.now(tz)
 
-    # Limit learning 적용 (가능하면)
-    if LIMIT_LEARNING_ENABLED:
-        effective_limits = get_effective_limits(config)
-        session_limits = effective_limits['session']
-        weekly_limits = effective_limits['weekly']
-        learning_status = effective_limits['learning_status']
-    else:
-        session_limits = config['rate_limits']['session']
-        weekly_limits = config['rate_limits']['weekly']
-        learning_status = None
+    # Config에서 limit 로드
+    session_limits = config['rate_limits']['session']
+    weekly_limits = config['rate_limits']['weekly']
 
-    # 세션 윈도우 계산 (5시간 rolling)
-    session_start, session_end, session_reset = get_fixed_session_window(now)
+    # 세션 윈도우 계산 (5시간 고정)
+    session_start, session_end, session_reset = get_fixed_session_window(now, config)
     session_usage = parse_sessions_in_window(session_files, session_start, session_end, tz)
     session_percentages = calculate_usage_percentage(session_usage, session_limits)
 
     # 세션 리셋까지 남은 시간 계산
     session_time_until_reset = calculate_time_until_reset(now, session_reset)
-
-    # 히스토리 기록 및 자동 학습
-    if LIMIT_LEARNING_ENABLED:
-        try:
-            # 세션 스냅샷 기록
-            record_session_snapshot(
-                session_usage,
-                session_start,
-                session_end,
-                session_percentages,
-                tz
-            )
-
-            # 주기적으로 자동 학습 실행 (매 10번째 실행마다)
-            # 또는 세션이 70% 이상일 때
-            if session_percentages['max_percentage'] >= 70:
-                learned = analyze_and_learn_limits()
-                if learned['session']['status'] == 'learned':
-                    # 학습 완료되면 다음 실행부터 새 limit 적용
-                    pass
-        except Exception as e:
-            print(f"Warning: Failed to record/learn session: {e}")
 
     # 주간 윈도우 계산 (7일)
     weekly_start, weekly_end, weekly_reset = get_weekly_window(now)
@@ -529,10 +515,64 @@ def monitor_once(config):
     # 주간 리셋까지 남은 시간 계산
     weekly_time_until_reset = calculate_time_until_reset(now, weekly_reset)
 
-    # 알림 체크 및 전송 (세션 사용량 기준)
+    # Calibration 적용 (세션)
+    session_calibration_info = None
+    session_display_percentage = session_percentages['max_percentage']  # 기본값
+
+    if CALIBRATION_ENABLED:
+        try:
+            window_key = get_session_window_key(session_start)
+            monitor_value = session_percentages['max_percentage'] / 100.0
+            calibration = get_calibrated_value(monitor_value, window_key)
+
+            session_calibration_info = {
+                'original_percentage': session_percentages['max_percentage'],
+                'calibrated_percentage': round(calibration['calibrated_value'] * 100, 1),
+                'offset_applied': round(calibration['offset_applied'] * 100, 1),
+                'confidence': calibration['confidence'],
+                'status': calibration['status'],
+                'dynamic_threshold': round(calibration['threshold'] * 100, 1),
+                'window_key': window_key,
+                'learned_limit': calibration.get('learned_limit')
+            }
+
+            # 캘리브레이션이 활성화되어 있으면 보정된 값을 사용
+            # override, calibrated, learning 상태 모두 적용
+            if calibration['status'] in ['override', 'calibrated', 'learning']:
+                session_display_percentage = session_calibration_info['calibrated_percentage']
+        except Exception as e:
+            print(f"Warning: Session calibration failed: {e}")
+
+    # Calibration 적용 (주간)
+    weekly_calibration_info = None
+    weekly_display_percentage = weekly_percentages['max_percentage']  # 기본값
+
+    if CALIBRATION_ENABLED:
+        try:
+            weekly_window_key = get_weekly_window_key()
+            weekly_monitor_value = weekly_percentages['max_percentage'] / 100.0
+            weekly_calibration = get_calibrated_value(weekly_monitor_value, weekly_window_key)
+
+            weekly_calibration_info = {
+                'original_percentage': weekly_percentages['max_percentage'],
+                'calibrated_percentage': round(weekly_calibration['calibrated_value'] * 100, 1),
+                'offset_applied': round(weekly_calibration['offset_applied'] * 100, 1),
+                'confidence': weekly_calibration['confidence'],
+                'status': weekly_calibration['status'],
+                'dynamic_threshold': round(weekly_calibration['threshold'] * 100, 1),
+                'window_key': weekly_window_key
+            }
+
+            # 캘리브레이션이 활성화되어 있으면 보정된 값을 사용
+            if weekly_calibration['status'] in ['override', 'calibrated', 'learning']:
+                weekly_display_percentage = weekly_calibration_info['calibrated_percentage']
+        except Exception as e:
+            print(f"Warning: Weekly calibration failed: {e}")
+
+    # 알림 체크 및 전송 (캘리브레이션된 값 기준)
     notified_thresholds = check_and_send_notifications(
         config,
-        session_percentages['max_percentage'],
+        session_display_percentage,
         session_start.isoformat()
     )
 
@@ -542,11 +582,12 @@ def monitor_once(config):
         'plan': config['plan'],
         'timezone': tz_name,
         'timezone_abbr': tz_abbr,
-        'limit_learning': {
-            'enabled': LIMIT_LEARNING_ENABLED,
-            'session_status': learning_status['session']['status'] if learning_status else 'disabled',
-            'session_confidence': learning_status['session']['confidence'] if learning_status else 0.0,
-            'session_data_points': learning_status['session']['data_points'] if learning_status else 0
+        'calibration': {
+            'enabled': CALIBRATION_ENABLED,
+            'session': session_calibration_info,
+            'weekly': weekly_calibration_info,
+            # Legacy compatibility (세션 정보를 'info'에도 유지)
+            'info': session_calibration_info
         },
         'notifications': {
             'enabled': config.get('notifications', {}).get('enabled', True),
@@ -582,8 +623,8 @@ def monitor_once(config):
                 'note': f'{session_limits["window_hours"]}시간 rolling 윈도우'
             },
             'display': {
-                'progress_bar': generate_progress_bar(session_percentages['max_percentage']),
-                'status_line': f"{session_percentages['max_percentage']}% used, resets in {session_time_until_reset['human_readable']} ({session_reset.strftime('%H:%M')} {tz_abbr})"
+                'progress_bar': generate_progress_bar(session_display_percentage),
+                'status_line': f"{session_display_percentage}% used, resets in {session_time_until_reset['human_readable']} ({session_reset.strftime('%H:%M')} {tz_abbr})"
             }
         },
         'weekly': {
@@ -615,8 +656,8 @@ def monitor_once(config):
                 'note': '7일 rolling 윈도우'
             },
             'display': {
-                'progress_bar': generate_progress_bar(weekly_percentages['max_percentage']),
-                'status_line': f"{weekly_percentages['max_percentage']}% used (7 days)"
+                'progress_bar': generate_progress_bar(weekly_display_percentage),
+                'status_line': f"{weekly_display_percentage}% used (7 days)"
             }
         },
         'timestamp': datetime.now(tz).isoformat()
@@ -631,6 +672,43 @@ def save_output(data):
         json.dump(data, f, indent=2)
 
 
+def check_pid():
+    """PID 파일 확인 및 중복 실행 방지"""
+    if PID_FILE.exists():
+        try:
+            with open(PID_FILE, 'r') as f:
+                old_pid = int(f.read().strip())
+
+            # 해당 PID가 실행 중인지 확인
+            try:
+                os.kill(old_pid, 0)  # 시그널 0: 프로세스 존재 확인
+                print(f"⚠️  Daemon already running with PID {old_pid}")
+                print(f"   To restart, run: kill {old_pid} && {sys.argv[0]}")
+                return False
+            except OSError:
+                # 프로세스가 없으면 오래된 PID 파일 삭제
+                print(f"🧹 Cleaning up stale PID file (PID {old_pid} not running)")
+                PID_FILE.unlink()
+        except (ValueError, IOError):
+            # PID 파일이 손상되었으면 삭제
+            PID_FILE.unlink()
+
+    return True
+
+
+def write_pid():
+    """현재 프로세스 PID 기록"""
+    PID_FILE.parent.mkdir(parents=True, exist_ok=True)
+    with open(PID_FILE, 'w') as f:
+        f.write(str(os.getpid()))
+
+
+def cleanup_pid():
+    """PID 파일 삭제"""
+    if PID_FILE.exists():
+        PID_FILE.unlink()
+
+
 def daemon_mode(config, interval=60):
     """데몬 모드로 지속 실행"""
     # Timezone 설정
@@ -638,6 +716,7 @@ def daemon_mode(config, interval=60):
     tz = ZoneInfo(tz_name)
 
     print(f"🚀 Claude Usage Monitor Daemon v2 started")
+    print(f"   PID: {os.getpid()}")
     print(f"   Plan: {config['plan']['name']}")
     print(f"   Timezone: {tz_name}")
     print(f"   Output: {OUTPUT_FILE}")
@@ -655,8 +734,16 @@ def daemon_mode(config, interval=60):
             # 상태 출력
             if data['status'] == 'active':
                 session_bar = data['session']['display']['progress_bar']
-                session_pct = data['session']['percentages']['max_percentage']
-                weekly_pct = data['weekly']['percentages']['max_percentage']
+                # 캘리브레이션된 값이 있으면 그것을 사용, 아니면 원본 사용
+                if data['calibration']['enabled'] and data['calibration']['session']:
+                    session_pct = data['calibration']['session']['calibrated_percentage']
+                else:
+                    session_pct = data['session']['percentages']['max_percentage']
+
+                if data['calibration']['enabled'] and data['calibration']['weekly']:
+                    weekly_pct = data['calibration']['weekly']['calibrated_percentage']
+                else:
+                    weekly_pct = data['weekly']['percentages']['max_percentage']
 
                 print(f"[{datetime.now(tz).strftime('%H:%M:%S')}] "
                       f"Session: {session_bar} {session_pct}% | "
@@ -670,6 +757,11 @@ def daemon_mode(config, interval=60):
 
     except KeyboardInterrupt:
         print("\\n\\n✅ Daemon stopped")
+        cleanup_pid()
+    except Exception as e:
+        print(f"\\n\\n❌ Daemon crashed: {e}")
+        cleanup_pid()
+        raise
 
 
 def main():
@@ -679,6 +771,8 @@ def main():
                         help='Run once and exit (default: daemon mode)')
     parser.add_argument('--interval', type=int, default=60,
                         help='Update interval in seconds (default: 60)')
+    parser.add_argument('--force', action='store_true',
+                        help='Force start even if daemon is already running')
 
     args = parser.parse_args()
 
@@ -693,8 +787,19 @@ def main():
         save_output(data)
         print(json.dumps(data, indent=2))
     else:
-        # 데몬 모드
-        daemon_mode(config, args.interval)
+        # 데몬 모드 - PID 확인
+        if not args.force and not check_pid():
+            return 1
+
+        # PID 파일 생성
+        write_pid()
+
+        try:
+            # 데몬 실행
+            daemon_mode(config, args.interval)
+        finally:
+            # 종료 시 PID 파일 삭제
+            cleanup_pid()
 
     return 0
 
