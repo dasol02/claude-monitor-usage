@@ -2,9 +2,27 @@
 
 **Chrome Extension + SwiftBar로 Claude 사용량을 실시간 모니터링**
 
+[![Chrome Web Store](https://img.shields.io/badge/Chrome%20Web%20Store-Install-brightgreen?logo=googlechrome)](https://chromewebstore.google.com/detail/lpgoibedpckcimdgdeedmbakgnngkdhh)
 ![Version](https://img.shields.io/badge/version-3.1-blue)
 ![Platform](https://img.shields.io/badge/platform-macOS-lightgrey)
 ![Chrome](https://img.shields.io/badge/chrome-extension-green)
+
+## 🚀 빠른 시작
+
+### Chrome Extension (모든 OS)
+
+**[Chrome Web Store에서 설치](https://chromewebstore.google.com/detail/lpgoibedpckcimdgdeedmbakgnngkdhh)** ✅
+
+설치 후 바로 사용 가능합니다!
+
+### macOS SwiftBar 연동 (선택)
+
+Extension + 메뉴바 통합을 원하면:
+```bash
+git clone https://github.com/dasol02/claude-monitor-usage.git
+cd claude-monitor-usage
+./install.sh
+```
 
 ## 📌 지원 플랫폼 및 플랜
 
