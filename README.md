@@ -77,28 +77,24 @@ SwiftBar (메뉴바 표시)
 
 ## 📊 표시 예시
 
-### Chrome Extension Badge
-```
-🟢 22%  ← Extension 아이콘에 표시
-```
+### Chrome Extension
 
-### Chrome Extension Popup
-```
-Status: ✅ Active
-Session: 3시간 50분 후 재설정        22%
-Weekly: (화) 오전 10:59에 재설정      25%
-Last Update: Just now
-```
+<img src="./screenshots/chrome-extension.png" width="300" alt="Chrome Extension Screenshot">
 
-### SwiftBar 메뉴바
-```
-🟢 22%
-├─ 📊 Session Usage (3시간 50분 후 재설정)
-│   └─ Current: 22%
-├─ 📈 Weekly Usage ((화) 오전 10:59에 재설정)
-│   └─ Current: 25%
-└─ 🕐 Last Updated: 10/23 16:14
-```
+**기능:**
+- 🟢 Badge: Extension 아이콘에 사용량 % 표시
+- 📊 Popup: 상세 사용량 + Reset Time
+- 🔄 Scrape Now: 수동 업데이트 버튼
+
+### macOS SwiftBar (메뉴바)
+
+<img src="./screenshots/mac-swiftbar.png" width="400" alt="macOS SwiftBar Screenshot">
+
+**기능:**
+- 🟢 메뉴바 아이콘: 한눈에 사용량 확인
+- 📊 Session Usage: 재설정 시간 포함
+- 📈 Weekly Usage: 주간 사용량
+- 🕐 Last Updated: 마지막 업데이트 시간
 
 ### 색상 의미
 - 🟢 **녹색** (0-49%): 안전
