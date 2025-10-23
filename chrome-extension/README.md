@@ -1,9 +1,15 @@
 # Claude Usage Monitor - Chrome Extension
 
-Chrome Extension으로 Claude Team 사용량을 자동으로 스크래핑합니다.
+Chrome Extension으로 Claude 사용량을 자동으로 스크래핑합니다.
 
-## 📌 플랫폼 요구사항
+## 📌 지원 플랫폼
 
+### ✅ 지원 Claude 플랜
+- **Claude Pro** (개인)
+- **Claude Team** (팀)
+- **Claude Enterprise** (기업)
+
+### ✅ 지원 환경
 - **필수**: Chrome Browser
 - **미지원**: Safari, Edge, Firefox (Chrome Extension API 미호환)
 - **OS**: Windows, macOS, Linux 모두 가능 (Chrome만 있으면 됨)

@@ -1,22 +1,27 @@
-# Claude Team Usage Monitor
+# Claude Usage Monitor
 
-**Chrome Extension + SwiftBar로 Claude Team 사용량을 실시간 모니터링**
+**Chrome Extension + SwiftBar로 Claude 사용량을 실시간 모니터링**
 
 ![Version](https://img.shields.io/badge/version-3.1-blue)
 ![Platform](https://img.shields.io/badge/platform-macOS-lightgrey)
 ![Chrome](https://img.shields.io/badge/chrome-extension-green)
 
-## 📌 플랫폼 요구사항
+## 📌 지원 플랫폼 및 플랜
 
-### ✅ 지원
+### ✅ 지원 Claude 플랜
+- **Claude Pro** (개인 사용자)
+- **Claude Team** (팀 사용자)
+- **Claude Enterprise** (기업 사용자)
+
+> 💡 **https://claude.ai/settings/usage** 페이지에서 사용량을 확인할 수 있는 모든 플랜에서 작동합니다!
+
+### ✅ 지원 환경
 - **Browser**: Chrome (Chrome Extension)
-- **OS**: macOS (SwiftBar 사용 시)
+- **OS**: macOS (SwiftBar 사용 시), Windows/Linux (Extension만)
 
 ### ❌ 미지원
 - **Safari, Edge, Firefox**: Chrome Extension API 미호환
-- **Windows, Linux**: SwiftBar는 macOS 전용
-
-> **참고**: Chrome Extension만 사용하면 **Windows/Linux에서도 사용 가능** (SwiftBar 없이 Extension Popup으로만 확인)
+- **Windows, Linux**: SwiftBar는 macOS 전용 (Extension 단독 사용은 가능)
 
 ## ✨ 주요 기능
 
