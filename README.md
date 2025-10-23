@@ -2,9 +2,21 @@
 
 **Chrome Extension + SwiftBar로 Claude Team 사용량을 실시간 모니터링**
 
-![Version](https://img.shields.io/badge/version-3.0-blue)
+![Version](https://img.shields.io/badge/version-3.1-blue)
 ![Platform](https://img.shields.io/badge/platform-macOS-lightgrey)
 ![Chrome](https://img.shields.io/badge/chrome-extension-green)
+
+## 📌 플랫폼 요구사항
+
+### ✅ 지원
+- **Browser**: Chrome (Chrome Extension)
+- **OS**: macOS (SwiftBar 사용 시)
+
+### ❌ 미지원
+- **Safari, Edge, Firefox**: Chrome Extension API 미호환
+- **Windows, Linux**: SwiftBar는 macOS 전용
+
+> **참고**: Chrome Extension만 사용하면 **Windows/Linux에서도 사용 가능** (SwiftBar 없이 Extension Popup으로만 확인)
 
 ## ✨ 주요 기능
 

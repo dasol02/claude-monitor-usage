@@ -2,6 +2,14 @@
 
 Chrome Extension으로 Claude Team 사용량을 자동으로 스크래핑합니다.
 
+## 📌 플랫폼 요구사항
+
+- **필수**: Chrome Browser
+- **미지원**: Safari, Edge, Firefox (Chrome Extension API 미호환)
+- **OS**: Windows, macOS, Linux 모두 가능 (Chrome만 있으면 됨)
+
+> **참고**: SwiftBar 연동은 macOS에서만 가능하지만, Extension 단독 사용은 모든 OS에서 가능합니다.
+
 ## 🎯 기능
 
 - 📊 **자동 스크래핑**: 5분마다 자동 스크래핑
