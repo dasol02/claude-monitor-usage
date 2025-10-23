@@ -6,8 +6,7 @@
 // 설정
 const CONFIG = {
   SCRAPE_INTERVAL: 5, // 5분마다
-  USAGE_URL: 'https://claude.ai/settings/usage',
-  MONITOR_SCRIPT: '/Users/dasollee/.local/bin/claude-auto-update-usage'
+  USAGE_URL: 'https://claude.ai/settings/usage'
 };
 
 // Extension 설치 시 초기화

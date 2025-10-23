@@ -128,6 +128,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - SwiftBar integration for menu bar display
 - macOS notifications at 80%, 90%, 95% thresholds
 - Multi-PC support with independent calibration data
-
-[2.1.0]: https://github.com/dslee02/claude-team-usage-monitor/compare/v2.0.0...v2.1.0
-[2.0.0]: https://github.com/dslee02/claude-team-usage-monitor/releases/tag/v2.0.0
