@@ -1,8 +1,6 @@
-# Claude Team Usage Monitor v3.0
+# Claude Team Usage Monitor
 
-**완전 자동화된 Chrome Extension 기반 사용량 모니터**
-
-Mac StatusBar (SwiftBar)에서 Claude Team 사용량을 실시간으로 모니터링합니다.
+**Chrome Extension + SwiftBar로 Claude Team 사용량을 실시간 모니터링**
 
 ![Version](https://img.shields.io/badge/version-3.0-blue)
 ![Platform](https://img.shields.io/badge/platform-macOS-lightgrey)
@@ -10,213 +8,156 @@ Mac StatusBar (SwiftBar)에서 Claude Team 사용량을 실시간으로 모니�
 
 ## ✨ 주요 기능
 
-- 🔄 **완전 자동화**: Chrome Extension 클릭 한 번으로 자동 동기화
-- 📊 **실시간 표시**: SwiftBar에 Session/Weekly 사용량 표시
-- 🟢 **색상 코딩**: 사용량에 따른 자동 색상 변경 (녹색/노란색/빨간색)
-- ⚡ **빠른 동기화**: 1-3초 이내 자동 업데이트
-- 🎯 **간단한 구조**: Monitor daemon 제거, Extension 전용
+- 🔄 **완전 자동화**: Chrome Extension 클릭 → 1-3초 자동 업데이트
+- 📊 **실시간 표시**: Session/Weekly 사용량을 Mac 메뉴바에 표시
+- 🟢 **색상 코딩**: 사용량에 따른 자동 색상 (녹색/노란색/빨간색)
+- ⚡ **빠른 동기화**: 자동 파일 감지로 즉시 업데이트
+- 🎯 **간단한 구조**: 100줄의 간결한 코드
 
-## 📋 시스템 구성
+## 📋 구성
 
-### Chrome Extension
-- 자동 스크래핑 (5분 간격)
-- Badge에 실시간 % 표시
-- 클릭 한 번으로 수동 스크래핑
-
-### Extension Watcher
-- fswatch 기반 파일 감지
-- 1초 이내 자동 동기화
-- 백그라운드 실행
-
-### SwiftBar Plugin
-- 간결한 표시 (100줄)
-- 로컬 시간 표시
-- 자동 새로고침
-
-## 🚀 빠른 시작
-
-### 1. Chrome Extension 설치
-
-```bash
-# Extension 폴더 열기
-open ~/claude-monitor/chrome-extension/
 ```
+Chrome Extension (스크래핑)
+    ↓ (1-3초)
+Watcher (자동 감지)
+    ↓
+SwiftBar (메뉴바 표시)
+```
+
+## 🚀 설치 및 사용
+
+### 1️⃣ Chrome Extension 설치
 
 1. Chrome 열기
 2. `chrome://extensions/` 접속
-3. **개발자 모드** 켜기
+3. **개발자 모드** 켜기 (우측 상단)
 4. **압축해제된 확장 프로그램을 로드합니다** 클릭
-5. `~/claude-monitor/chrome-extension` 폴더 선택
+5. `claude-monitor/chrome-extension` 폴더 선택
 
-### 2. Extension Watcher 시작
+### 2️⃣ SwiftBar에 연결
 
-```bash
-claude-start-extension-watcher
-```
+1. **Extension Watcher 시작**
+   ```bash
+   claude-start-extension-watcher
+   ```
 
-### 3. SwiftBar 확인
+2. **SwiftBar 플러그인 설치**
+   - SwiftBar 설정에서 플러그인 폴더 확인
+   - `ClaudeUsage.1m.sh`를 플러그인 폴더로 복사 또는 심볼릭 링크
 
-SwiftBar가 이미 설치되어 있다면 자동으로 표시됩니다!
+3. **완료!**
+   - SwiftBar 메뉴바에 사용량 표시됨
 
 ## 💡 사용 방법
 
-### 자동 동기화 (권장)
+### Chrome Extension만 사용
 
-1. Chrome Extension "Scrape Now" 클릭
-2. 끝! 1-3초 후 SwiftBar 자동 업데이트 ✨
+1. Extension 아이콘 클릭
+2. Popup에서 사용량 확인
+3. "Scrape Now" 버튼으로 수동 업데이트
 
-### 수동 입력 (백업)
+### SwiftBar와 함께 사용
 
-Extension이 작동하지 않을 경우:
+1. Chrome Extension에서 "Scrape Now" 클릭
+2. 1-3초 후 SwiftBar 자동 업데이트
+3. Mac 메뉴바에서 사용량 확인
 
-```bash
-claude-manual-update 22 25  # session% weekly%
+## 📊 표시 예시
+
+### Chrome Extension Badge
+```
+🟢 22%  ← Extension 아이콘에 표시
 ```
 
-## 📊 SwiftBar 표시
-
+### SwiftBar 메뉴바
 ```
-🟢 22%                    ← Session 사용량
-├─ 📊 Session Usage
-│  ├─ Current: 22%
-│  └─ Source: Chrome Extension
-├─ 📈 Weekly Usage
-│  ├─ Current: 25%
-│  └─ Source: Chrome Extension
+🟢 22%
+├─ 📊 Session Usage: 22%
+├─ 📈 Weekly Usage: 25%
 └─ 🕐 Last Updated: 10/23 16:14
 ```
 
 ### 색상 의미
-
 - 🟢 **녹색** (0-49%): 안전
 - 🟡 **노란색** (50-79%): 주의
 - 🔴 **빨간색** (80-100%): 위험
 
-## 🔧 관리 명령어
+## 🔧 관리
 
-### Watcher 관리
-
+### Watcher 상태 확인
 ```bash
-# 상태 확인
+# 실행 중인지 확인
 ps aux | grep claude-extension-watcher
 
 # 재시작
 killall claude-extension-watcher
 claude-start-extension-watcher
-
-# 로그 확인
-tail -f /tmp/claude-extension-watcher.log
 ```
 
-### LaunchAgent (자동 시작)
-
+### 자동 시작 설정 (선택)
 ```bash
-# 상태 확인
-launchctl list | grep claude.extension
-
-# 로드
+# LaunchAgent 로드 (Mac 시작 시 자동 실행)
 launchctl load ~/Library/LaunchAgents/com.claude.extension.watcher.plist
-
-# 언로드
-launchctl unload ~/Library/LaunchAgents/com.claude.extension.watcher.plist
 ```
 
-## 📁 파일 구조
+### 수동 입력 (백업 방법)
+```bash
+# Extension이 작동하지 않을 경우
+claude-manual-update <session%> <weekly%>
 
-```
-~/claude-monitor/
-├── chrome-extension/          # Chrome Extension
-│   ├── manifest.json
-│   ├── background.js         # Service worker (DataURL 다운로드)
-│   ├── content.js            # 페이지 스크래핑
-│   ├── popup.html/js         # UI
-│   └── README.md
-├── README.md                  # 이 파일
-├── CHANGELOG.md               # 변경 이력
-├── WEB_EXTENSION_ONLY.md     # Web Extension 전용 가이드
-└── CHROME_EXTENSION_AUTO_SYNC.md  # 자동 동기화 가이드
-
-~/.local/bin/
-├── claude-extension-watcher       # 파일 감시자
-├── claude-start-extension-watcher # Watcher 시작
-├── claude-sync-from-extension     # 동기화 스크립트
-├── claude-manual-update           # 수동 입력
-└── claude-find-extension-id       # Extension ID 찾기
-
-~/Library/Application Support/SwiftBar/
-└── ClaudeUsage.1m.sh             # SwiftBar 플러그인
-
-/tmp/
-└── claude-web-usage.json         # 현재 데이터
+# 예시
+claude-manual-update 22 25
 ```
 
 ## 🐛 문제 해결
 
 ### Extension이 작동하지 않음
-
-1. `chrome://extensions/` 에서 Extension 새로고침
+1. `chrome://extensions/`에서 새로고침
 2. 개발자 도구 Console 확인
-3. `claude-manual-update` 명령어로 수동 입력
+3. Extension ID 확인: `chrome://extensions/` → 개발자 모드 → ID 복사
 
 ### SwiftBar 업데이트 안 됨
-
 ```bash
 # SwiftBar 재시작
 killall SwiftBar && open -a SwiftBar
 
 # 데이터 파일 확인
 cat /tmp/claude-web-usage.json
+
+# Watcher 로그 확인
+tail -f /tmp/claude-extension-watcher.log
 ```
 
-### Watcher가 작동하지 않음
+## 📁 파일 구조
 
-```bash
-# Watcher 재시작
-killall claude-extension-watcher
-claude-start-extension-watcher
-
-# 로그 확인
-tail -20 /tmp/claude-extension-watcher.log
 ```
+claude-monitor/
+├── chrome-extension/       # Chrome Extension
+│   ├── manifest.json
+│   ├── background.js      # Service worker
+│   ├── content.js         # 스크래핑
+│   └── popup.html         # UI
+├── ClaudeUsage.1m.sh      # SwiftBar 플러그인
+└── README.md
 
-## 📝 변경 이력
-
-### v3.0 (2025-10-23) - Web Extension Only
-
-- ✅ Monitor daemon 완전 제거
-- ✅ Chrome Extension 전용 (DataURL 방식)
-- ✅ fswatch 기반 자동 동기화 (1-3초)
-- ✅ SwiftBar 플러그인 간소화 (277줄 → 100줄)
-- ✅ 로컬 시간 표시
-- ✅ Actions 버튼 정리
-
-### v2.1 (2025-10-22)
-
-- Monitor daemon + Calibration 시스템
-- 학습 기반 한도 예측
-
-### v1.0 (2025-10-16)
-
-- 초기 버전
-- Monitor daemon 기반
+~/.local/bin/
+├── claude-extension-watcher        # 파일 감시
+├── claude-start-extension-watcher  # Watcher 시작
+├── claude-sync-from-extension      # 동기화
+└── claude-manual-update            # 수동 입력
+```
 
 ## 🎯 기술 스택
 
-- **Chrome Extension**: Manifest V3, Service Worker
+- **Chrome Extension**: Manifest V3, Service Worker, DataURL
 - **Watcher**: fswatch (macOS)
-- **SwiftBar**: Bash script
+- **SwiftBar**: Bash script (100 lines)
 - **자동 시작**: LaunchAgent (macOS)
 
-## 📖 추가 문서
+## 📖 상세 문서
 
-- [WEB_EXTENSION_ONLY.md](./WEB_EXTENSION_ONLY.md) - Web Extension 전용 상세 가이드
-- [CHROME_EXTENSION_AUTO_SYNC.md](./CHROME_EXTENSION_AUTO_SYNC.md) - 자동 동기화 설명
-- [chrome-extension/README.md](./chrome-extension/README.md) - Extension 개발 가이드
-- [CHANGELOG.md](./CHANGELOG.md) - 전체 변경 이력
-
-## 🤝 기여
-
-이슈 및 PR은 환영합니다!
+- [chrome-extension/README.md](./chrome-extension/README.md) - Extension 상세 가이드
+- [CHANGELOG.md](./CHANGELOG.md) - 변경 이력
 
 ## 📄 라이센스
 
@@ -224,4 +165,4 @@ MIT License
 
 ---
 
-**Made with ❤️ for Claude Team Users**
+**Made for Claude Team Users**

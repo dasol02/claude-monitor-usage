@@ -1,199 +1,122 @@
 # Claude Usage Monitor - Chrome Extension
 
-Chrome Extension으로 claude.ai의 사용량을 자동으로 스크래핑하여 로컬 모니터에 전송합니다.
+Chrome Extension으로 Claude Team 사용량을 자동으로 스크래핑합니다.
 
-## ✨ 기능
+## 🎯 기능
 
-- 🔄 **자동 스크래핑**: 5분마다 자동으로 사용량 확인
-- 🎯 **백그라운드 실행**: 브라우저가 열려있으면 자동 작동
-- 📊 **실시간 업데이트**: 스크래핑된 데이터를 모니터에 자동 전송
-- 🖱️ **수동 스크래핑**: 필요시 버튼 클릭으로 즉시 업데이트
+- 📊 **자동 스크래핑**: 5분마다 자동 스크래핑
+- 🔘 **수동 스크래핑**: "Scrape Now" 버튼
+- 🟢 **Badge 표시**: Extension 아이콘에 % 표시
+- 💾 **자동 저장**: 로컬 storage에 데이터 저장
+- 📥 **파일 다운로드**: DataURL 방식으로 JSON 파일 생성
 
-## 📦 설치 방법
-
-### 1. Extension 설치
+## 📦 설치
 
 1. Chrome 열기
-2. 주소창에 `chrome://extensions/` 입력
-3. 우측 상단 "개발자 모드" 활성화
-4. "압축해제된 확장 프로그램을 로드합니다" 클릭
-5. `/Users/dasollee/claude-monitor/chrome-extension` 폴더 선택
+2. `chrome://extensions/` 접속
+3. **개발자 모드** 켜기
+4. **압축해제된 확장 프로그램을 로드합니다** 클릭
+5. 이 폴더(`chrome-extension`) 선택
 
-### 2. 권한 설정
+## 💡 사용
 
-Extension 설치 후 자동으로 필요한 권한을 요청합니다:
-- ✅ `https://claude.ai/*` - Claude.ai 접근
-- ✅ Storage - 데이터 저장
-- ✅ Alarms - 주기적 실행
-- ✅ Downloads - 데이터 파일 저장
+### Popup 사용
+1. Extension 아이콘 클릭
+2. 현재 사용량 확인
+3. "Scrape Now" 버튼으로 업데이트
 
-### 3. 로그인 확인
+### Badge 확인
+- Extension 아이콘에 Session % 표시
+- 색상: 녹색(0-49%), 노란색(50-79%), 빨간색(80-100%)
 
-- Chrome에서 https://claude.ai 접속 후 로그인
-- 로그인 상태 유지 (쿠키)
+## 🔧 작동 방식
 
-## 🚀 사용 방법
-
-### 자동 모드 (권장)
-
-Extension 설치 후 아무것도 하지 않아도 5분마다 자동으로:
-1. Usage 페이지 열기 (백그라운드)
-2. 사용량 데이터 추출
-3. 로컬 파일에 저장 (`~/.claude-monitor/auto-usage.json`)
-4. 탭 자동 닫기
-
-### 수동 모드
-
-1. Chrome 우측 상단 Extension 아이콘 클릭
-2. "🔄 Scrape Now" 버튼 클릭
-3. 몇 초 후 결과 확인
-
-## 📂 데이터 구조
-
-스크래핑된 데이터는 JSON 형식으로 저장됩니다:
-
-```json
-{
-  "session": 17,
-  "weekly": 17,
-  "timestamp": "2025-10-22T15:30:00.000Z"
-}
+### 1. 스크래핑
+```
+사용자 클릭 "Scrape Now"
+    ↓
+https://claude.ai/settings/usage 페이지 열기
+    ↓
+Content Script로 데이터 추출
+    ↓
+Session % 및 Weekly % 파싱
 ```
 
-저장 위치: `~/Downloads/.claude-monitor/auto-usage.json`
-
-## 🔧 Monitor 연동
-
-### 자동 연동 스크립트
-
-`~/.local/bin/claude-auto-update-usage` 생성:
-
-```bash
-#!/bin/bash
-# Chrome Extension에서 생성한 usage 파일을 읽어서 자동 calibration
-
-USAGE_FILE="$HOME/Downloads/.claude-monitor/auto-usage.json"
-
-if [ -f "$USAGE_FILE" ]; then
-    # JSON 파싱
-    SESSION=$(jq -r '.session' "$USAGE_FILE")
-    WEEKLY=$(jq -r '.weekly' "$USAGE_FILE")
-
-    if [ "$SESSION" != "null" ] && [ "$WEEKLY" != "null" ]; then
-        echo "📊 Auto-updating usage: Session=$SESSION%, Weekly=$WEEKLY%"
-        claude-calibrate $SESSION $WEEKLY
-
-        # 파일 삭제 (처리 완료)
-        rm "$USAGE_FILE"
-    fi
-fi
+### 2. 저장
+```
+데이터 추출
+    ↓
+chrome.storage.local에 저장
+    ↓
+Badge 업데이트
 ```
 
-```bash
-chmod +x ~/.local/bin/claude-auto-update-usage
+### 3. 파일 생성 (SwiftBar 연동용)
+```
+데이터 추출
+    ↓
+JSON 문자열 생성
+    ↓
+DataURL로 변환
+    ↓
+chrome.downloads.download()
+    ↓
+~/Downloads/claude-auto-usage.json 생성
 ```
 
-### Cron으로 자동 확인 (선택사항)
-
-```bash
-# 1분마다 usage 파일 확인
-* * * * * ~/.local/bin/claude-auto-update-usage
-```
-
-## 🐛 트러블슈팅
-
-### Extension이 작동하지 않음
-
-1. Chrome에서 `chrome://extensions/` 열기
-2. "Claude Usage Monitor" 찾기
-3. "세부정보" 클릭
-4. "백그라운드 페이지" 확인 (활성 상태여야 함)
-5. 콘솔에서 에러 확인
-
-### 로그인 필요 에러
-
-- Chrome에서 https://claude.ai 접속
-- 로그인 후 재시도
-
-### 데이터가 추출되지 않음
-
-1. Extension 아이콘 클릭 → "📊 Open Usage Page"
-2. 페이지에서 "Current session"과 "All models" 텍스트 확인
-3. 페이지 구조가 변경되었으면 `content.js` 업데이트 필요
-
-## 📊 작동 확인
-
-### 1. Extension Popup 확인
-- Extension 아이콘 클릭
-- Status: ✅ Active
-- Session/Weekly 값 표시
-- Last Update 시간 확인
-
-### 2. 로그 확인
-```bash
-# Extension 콘솔 (chrome://extensions/)
-# Background page → Console 확인
-
-# Monitor 로그
-tail -f ~/.claude-monitor/monitor.log
-```
-
-### 3. 수동 테스트
-```bash
-# Extension에서 "Scrape Now" 클릭
-# 다운로드 폴더 확인
-ls -la ~/Downloads/.claude-monitor/auto-usage.json
-cat ~/Downloads/.claude-monitor/auto-usage.json
-```
-
-## 🔄 업데이트
-
-Extension 코드 수정 후:
-1. `chrome://extensions/` 열기
-2. "Claude Usage Monitor" 찾기
-3. 새로고침 버튼 (🔄) 클릭
-
-## 📝 파일 구조
+## 📁 파일 구조
 
 ```
 chrome-extension/
 ├── manifest.json       # Extension 설정
-├── background.js       # 백그라운드 서비스 워커 (스크래핑 로직)
-├── content.js         # Usage 페이지에서 실행 (데이터 추출)
-├── popup.html         # Extension 팝업 UI
-├── popup.js          # 팝업 로직
-├── icon16.png        # 아이콘 16x16
-├── icon48.png        # 아이콘 48x48
-├── icon128.png       # 아이콘 128x128
-└── README.md         # 이 파일
+├── background.js       # Service Worker (백그라운드)
+├── content.js          # 페이지 스크래핑
+├── popup.html          # Popup UI
+├── popup.js            # Popup 로직
+├── icon16.png          # 아이콘 16x16
+├── icon48.png          # 아이콘 48x48
+└── icon128.png         # 아이콘 128x128
 ```
 
-## ⚙️ 설정 변경
+## 🔍 디버깅
 
-### 스크래핑 주기 변경
+### Service Worker Console
+1. `chrome://extensions/` 접속
+2. 개발자 모드 ON
+3. "Claude Usage Monitor" 찾기
+4. "Service Worker" → "검사" 클릭
+5. Console 탭에서 로그 확인
 
-`background.js` 수정:
+### Extension ID 확인
+1. `chrome://extensions/` 접속
+2. 개발자 모드 ON
+3. Extension ID 복사
 
-```javascript
-const CONFIG = {
-  SCRAPE_INTERVAL: 5, // 5분 → 원하는 시간(분)으로 변경
-  // ...
-};
-```
+## 🐛 문제 해결
 
-변경 후 Extension 새로고침 필요.
+### "Failed to send to monitor" 에러
+- Service Worker Console 확인
+- DataURL 생성 오류일 수 있음
+- JSON 데이터 확인
 
-## 🎯 다음 단계
+### 스크래핑이 작동하지 않음
+- `https://claude.ai/settings/usage` 페이지가 열리는지 확인
+- Content script가 로드되는지 확인
+- 페이지 구조 변경 여부 확인 (content.js 업데이트 필요)
 
-1. ✅ Extension 설치 및 테스트
-2. ✅ 자동 스크래핑 확인 (5분 대기)
-3. ✅ Monitor 연동 스크립트 설정
-4. ✅ Cron 설정 (선택)
-5. ✅ 완전 자동화 완성!
+### 파일이 다운로드되지 않음
+- Chrome 다운로드 권한 확인
+- DataURL 방식이 정상 작동하는지 확인
+- Service Worker Console에서 에러 확인
 
-## 📞 문제 해결
+## 📖 기술 스택
 
-문제가 발생하면:
-1. Extension 콘솔 확인
-2. Usage 페이지 수동 접속하여 구조 확인
-3. `content.js`의 파싱 로직 디버그
+- **Manifest V3**: 최신 Chrome Extension API
+- **Service Worker**: background.js
+- **Content Script**: 페이지 데이터 추출
+- **Downloads API**: 파일 저장
+- **Storage API**: 로컬 데이터 저장
+
+## 📝 라이센스
+
+MIT License
