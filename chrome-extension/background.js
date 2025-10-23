@@ -124,8 +124,10 @@ async function sendToMonitor(data) {
     // → Downloads API + Data URL 사용
     const jsonStr = JSON.stringify(data);
     // Service Worker에서는 URL.createObjectURL 사용 불가
-    // Data URL 방식 사용
-    const dataUrl = 'data:application/json;base64,' + btoa(jsonStr);
+    // Data URL 방식 사용 (UTF-8 → base64)
+    const utf8Bytes = new TextEncoder().encode(jsonStr);
+    const base64 = btoa(String.fromCharCode(...utf8Bytes));
+    const dataUrl = 'data:application/json;base64,' + base64;
 
     // 자동 다운로드 (사용자 개입 없음)
     await chrome.downloads.download({
@@ -196,6 +198,15 @@ chrome.runtime.onStartup.addListener(() => {
 
 // Badge 초기화 (최초 실행)
 initBadge();
+
+// 다운로드 완료 시 이력 자동 삭제
+chrome.downloads.onChanged.addListener((delta) => {
+  if (delta.state && delta.state.current === 'complete') {
+    // 다운로드 완료되면 Chrome 다운로드 목록에서 제거
+    chrome.downloads.erase({ id: delta.id });
+    console.log('Download history cleaned:', delta.id);
+  }
+});
 
 // 수동 스크래핑 (popup에서 호출)
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {

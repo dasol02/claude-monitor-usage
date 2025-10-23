@@ -9,9 +9,10 @@
 ## ✨ 주요 기능
 
 - 🔄 **완전 자동화**: Chrome Extension 클릭 → 1-3초 자동 업데이트
-- 📊 **실시간 표시**: Session/Weekly 사용량을 Mac 메뉴바에 표시
+- 📊 **실시간 표시**: Session/Weekly 사용량 + Reset Time을 Mac 메뉴바에 표시
 - 🟢 **색상 코딩**: 사용량에 따른 자동 색상 (녹색/노란색/빨간색)
 - ⚡ **빠른 동기화**: 자동 파일 감지로 즉시 업데이트
+- 🧹 **자동 정리**: 다운로드 이력 자동 삭제로 깔끔한 관리
 - 🎯 **간단한 구조**: 100줄의 간결한 코드
 
 ## 📋 구성
@@ -69,11 +70,21 @@ SwiftBar (메뉴바 표시)
 🟢 22%  ← Extension 아이콘에 표시
 ```
 
+### Chrome Extension Popup
+```
+Status: ✅ Active
+Session: 3시간 50분 후 재설정        22%
+Weekly: (화) 오전 10:59에 재설정      25%
+Last Update: Just now
+```
+
 ### SwiftBar 메뉴바
 ```
 🟢 22%
-├─ 📊 Session Usage: 22%
-├─ 📈 Weekly Usage: 25%
+├─ 📊 Session Usage (3시간 50분 후 재설정)
+│   └─ Current: 22%
+├─ 📈 Weekly Usage ((화) 오전 10:59에 재설정)
+│   └─ Current: 25%
 └─ 🕐 Last Updated: 10/23 16:14
 ```
 

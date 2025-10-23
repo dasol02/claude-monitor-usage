@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.0] - 2025-10-23
+
+### ✨ Added
+
+- **Reset Time 표시**: Session/Weekly 재설정 시간 표시
+  - Chrome Extension Popup에 reset time 추가
+  - SwiftBar 드롭다운 메뉴에 reset time 추가
+  - 예: "Session Usage (3시간 50분 후 재설정)"
+
+- **다운로드 이력 자동 삭제**: Chrome 다운로드 목록 자동 정리
+  - 파일은 정상적으로 다운로드되지만 이력에는 쌓이지 않음
+  - `chrome.downloads.onChanged` 리스너로 자동 삭제
+
+### 🔧 Changed
+
+- **Popup UI 가독성 개선**: 퍼센트 우측 정렬, reset time 라벨 옆에 표시
+- **UTF-8 인코딩 개선**: btoa 에러 수정 (TextEncoder 사용)
+
+### 🐛 Fixed
+
+- btoa Latin1 인코딩 에러 수정 (한국어 문자 포함 시 에러 발생)
+- Popup UI 레이아웃 정렬 문제 해결
+
 ## [3.0.0] - 2025-10-23
 
 ### 🎯 Major Changes - Web Extension Only

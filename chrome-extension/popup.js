@@ -66,6 +66,12 @@ async function loadStatus() {
         response.lastUsage.session !== null ? response.lastUsage.session + '%' : '--';
       document.getElementById('weeklyValue').textContent =
         response.lastUsage.weekly !== null ? response.lastUsage.weekly + '%' : '--';
+
+      // Reset times (no icon)
+      document.getElementById('sessionResetTime').textContent =
+        response.lastUsage.sessionResetTime || '';
+      document.getElementById('weeklyResetTime').textContent =
+        response.lastUsage.weeklyResetTime || '';
     }
 
     // Last Update

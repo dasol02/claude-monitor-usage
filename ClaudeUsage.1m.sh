@@ -26,6 +26,8 @@ fi
 # JSON 파싱
 SESSION=$(jq -r '.session.percentage // 0' "$USAGE_FILE" 2>/dev/null)
 WEEKLY=$(jq -r '.weekly.percentage // 0' "$USAGE_FILE" 2>/dev/null)
+SESSION_RESET=$(jq -r '.session.reset_time // ""' "$USAGE_FILE" 2>/dev/null)
+WEEKLY_RESET=$(jq -r '.weekly.reset_time // ""' "$USAGE_FILE" 2>/dev/null)
 LAST_UPDATED=$(jq -r '.timestamp // ""' "$USAGE_FILE" 2>/dev/null)
 
 # 데이터 검증
@@ -55,14 +57,22 @@ echo "$ICON ${SESSION}%"
 echo "---"
 
 # Session 정보
-echo "📊 Session Usage"
+if [ -n "$SESSION_RESET" ]; then
+    printf "📊 Session Usage (%s)\n" "$SESSION_RESET"
+else
+    echo "📊 Session Usage"
+fi
 printf -- "--Current: %s%% | color=%s\n" "$SESSION" "$COLOR"
 echo "--Source: Chrome Extension"
 
 echo "---"
 
 # Weekly 정보
-echo "📈 Weekly Usage"
+if [ -n "$WEEKLY_RESET" ]; then
+    printf "📈 Weekly Usage (%s)\n" "$WEEKLY_RESET"
+else
+    echo "📈 Weekly Usage"
+fi
 printf -- "--Current: %s%%\n" "$WEEKLY"
 echo "--Source: Chrome Extension"
 

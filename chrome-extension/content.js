@@ -49,34 +49,46 @@ function extractUsageFromPage() {
   const result = {
     session: null,
     weekly: null,
+    sessionResetTime: null,
+    weeklyResetTime: null,
     timestamp: new Date().toISOString()
   };
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
 
-    // Session 사용량 찾기
+    // Session 사용량 및 재설정 시간 찾기
     if (line === 'Current session') {
-      // 다음 5줄에서 "XX% 사용됨" 패턴 찾기
+      // 다음 5줄에서 재설정 시간과 사용량 찾기
       for (let j = i + 1; j < Math.min(i + 6, lines.length); j++) {
-        const match = lines[j].match(/(\d+)%\s*사용/);
-        if (match) {
-          result.session = parseInt(match[1]);
+        const resetMatch = lines[j].match(/(.+)\s*재설정/);
+        if (resetMatch && !result.sessionResetTime) {
+          result.sessionResetTime = resetMatch[1].trim();
+          console.log('Found session reset time:', result.sessionResetTime);
+        }
+
+        const usageMatch = lines[j].match(/(\d+)%\s*사용/);
+        if (usageMatch && !result.session) {
+          result.session = parseInt(usageMatch[1]);
           console.log('Found session:', result.session + '%');
-          break;
         }
       }
     }
 
-    // Weekly 사용량 찾기
+    // Weekly 사용량 및 재설정 시간 찾기
     if (line === 'All models') {
-      // 다음 5줄에서 "XX% 사용됨" 패턴 찾기
+      // 다음 5줄에서 재설정 시간과 사용량 찾기
       for (let j = i + 1; j < Math.min(i + 6, lines.length); j++) {
-        const match = lines[j].match(/(\d+)%\s*사용/);
-        if (match) {
-          result.weekly = parseInt(match[1]);
+        const resetMatch = lines[j].match(/(.+)\s*재설정/);
+        if (resetMatch && !result.weeklyResetTime) {
+          result.weeklyResetTime = resetMatch[1].trim();
+          console.log('Found weekly reset time:', result.weeklyResetTime);
+        }
+
+        const usageMatch = lines[j].match(/(\d+)%\s*사용/);
+        if (usageMatch && !result.weekly) {
+          result.weekly = parseInt(usageMatch[1]);
           console.log('Found weekly:', result.weekly + '%');
-          break;
         }
       }
     }

@@ -80,6 +80,12 @@
       padding-top: 12px;
       border-top: 1px solid #e5e5e5;
     }
+
+    .reset-time {
+      font-size: 11px;
+      color: #999;
+      margin-left: 4px;
+    }
   </style>
 </head>
 <body>
@@ -91,11 +97,17 @@
       <span class="value" id="statusText">Loading...</span>
     </div>
     <div class="status-item">
-      <span class="label">Session:</span>
+      <div>
+        <span class="label">Session:</span>
+        <span class="reset-time" id="sessionResetTime"></span>
+      </div>
       <span class="value" id="sessionValue">--</span>
     </div>
     <div class="status-item">
-      <span class="label">Weekly:</span>
+      <div>
+        <span class="label">Weekly:</span>
+        <span class="reset-time" id="weeklyResetTime"></span>
+      </div>
       <span class="value" id="weeklyValue">--</span>
     </div>
     <div class="status-item">
