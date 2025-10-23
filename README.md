@@ -44,27 +44,54 @@ SwiftBar (메뉴바 표시)
 
 ## 🚀 설치 및 사용
 
+### 🎯 빠른 설치 (macOS)
+
+```bash
+# 프로젝트 클론
+git clone https://github.com/dasol02/claude-monitor-usage.git
+cd claude-monitor-usage
+
+# 자동 설치 (SwiftBar + 스크립트)
+./install.sh
+```
+
+**설치되는 것들:**
+- ✅ 필요한 스크립트들 (`~/.local/bin/`)
+- ✅ SwiftBar 플러그인
+- ✅ 의존성 확인 (fswatch, jq)
+
+---
+
 ### 1️⃣ Chrome Extension 설치
 
 1. Chrome 열기
 2. `chrome://extensions/` 접속
 3. **개발자 모드** 켜기 (우측 상단)
 4. **압축해제된 확장 프로그램을 로드합니다** 클릭
-5. `claude-monitor/chrome-extension` 폴더 선택
+5. `chrome-extension` 폴더 선택
 
-### 2️⃣ SwiftBar에 연결
+### 2️⃣ SwiftBar 연동 (macOS만 해당)
 
-1. **Extension Watcher 시작**
+**자동 설치를 사용한 경우:**
+```bash
+# Watcher 시작 (자동 동기화)
+claude-start-extension-watcher
+```
+
+**수동 설치:**
+1. [SwiftBar](https://github.com/swiftbar/SwiftBar/releases) 설치
+2. SwiftBar 플러그인 폴더 확인
+3. `ClaudeUsage.1m.sh`를 플러그인 폴더로 복사
+4. 필요한 스크립트 설치:
    ```bash
-   claude-start-extension-watcher
+   # scripts/ 폴더의 파일들을 ~/.local/bin/으로 복사
+   cp scripts/* ~/.local/bin/
+   chmod +x ~/.local/bin/claude-*
    ```
 
-2. **SwiftBar 플러그인 설치**
-   - SwiftBar 설정에서 플러그인 폴더 확인
-   - `ClaudeUsage.1m.sh`를 플러그인 폴더로 복사 또는 심볼릭 링크
-
-3. **완료!**
-   - SwiftBar 메뉴바에 사용량 표시됨
+### 3️⃣ 완료!
+- Chrome Extension Badge에서 사용량 확인
+- macOS: SwiftBar 메뉴바에서도 확인 가능
 
 ## 💡 사용 방법
 

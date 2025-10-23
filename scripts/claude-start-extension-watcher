@@ -1,0 +1,28 @@
+#!/bin/bash
+# Extension Watcher를 백그라운드에서 시작
+# 사용법: claude-start-extension-watcher
+
+# 이미 실행 중인지 확인
+if pgrep -f "claude-extension-watcher" > /dev/null; then
+    echo "✅ Extension watcher already running"
+    ps aux | grep -E "claude-extension-watcher" | grep -v grep
+    exit 0
+fi
+
+# 백그라운드에서 실행
+nohup "$HOME/.local/bin/claude-extension-watcher" > /dev/null 2>&1 &
+
+sleep 2
+
+if pgrep -f "claude-extension-watcher" > /dev/null; then
+    echo "✅ Extension watcher started!"
+    echo ""
+    echo "📊 Now Chrome Extension will auto-sync to SwiftBar"
+    echo "   Just click 'Scrape Now' in the extension"
+    echo ""
+    echo "🔍 Check logs: tail -f /tmp/claude-extension-watcher.log"
+    echo "🛑 Stop: killall claude-extension-watcher"
+else
+    echo "❌ Failed to start watcher"
+    exit 1
+fi

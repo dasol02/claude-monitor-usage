@@ -1,0 +1,45 @@
+#!/bin/bash
+# Chrome Extension이 작동하지 않을 때 수동으로 사용량 입력
+# 사용법: claude-manual-update 10 10  (session% weekly%)
+
+if [ -z "$1" ] || [ -z "$2" ]; then
+    echo "❌ Usage: claude-manual-update <session%> <weekly%>"
+    echo ""
+    echo "Example:"
+    echo "  claude-manual-update 10 10"
+    echo "  claude-manual-update 15 20"
+    exit 1
+fi
+
+SESSION=$1
+WEEKLY=$2
+
+echo "📊 Manual Update"
+echo "   Session: ${SESSION}%"
+echo "   Weekly: ${WEEKLY}%"
+echo ""
+
+# JSON 파일 생성
+cat > /tmp/claude-web-usage.json << EOF
+{
+  "timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
+  "source": "manual_input",
+  "session": {
+    "percentage": ${SESSION},
+    "last_updated": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+  },
+  "weekly": {
+    "percentage": ${WEEKLY},
+    "last_updated": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+  }
+}
+EOF
+
+# SwiftBar 새로고침
+open "swiftbar://refreshallplugins" 2>/dev/null
+touch "$HOME/Library/Application Support/SwiftBar/ClaudeUsage.1m.sh" 2>/dev/null
+
+echo "✅ SwiftBar updated to ${SESSION}%"
+echo ""
+echo "🔍 Verify:"
+echo "  cat /tmp/claude-web-usage.json"

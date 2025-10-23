@@ -1,0 +1,64 @@
+#!/bin/bash
+# Chrome Extension 데이터를 즉시 동기화 (Web Extension 전용 버전)
+# 사용법: chrome extension에서 Scrape Now 클릭 후 이 명령어 실행
+
+SOURCE_FILE="$HOME/Downloads/claude-auto-usage.json"
+DEST_FILE="/tmp/claude-web-usage.json"
+
+if [ ! -f "$SOURCE_FILE" ]; then
+    echo "❌ Extension 파일이 없습니다"
+    echo "   Chrome Extension에서 'Scrape Now'를 먼저 클릭하세요"
+    exit 1
+fi
+
+echo "📥 Syncing extension data..."
+
+# JSON 파싱
+SESSION=$(jq -r '.session' "$SOURCE_FILE")
+WEEKLY=$(jq -r '.weekly' "$SOURCE_FILE")
+SESSION_RESET=$(jq -r '.sessionResetTime // ""' "$SOURCE_FILE")
+WEEKLY_RESET=$(jq -r '.weeklyResetTime // ""' "$SOURCE_FILE")
+
+if [ "$SESSION" == "null" ] || [ "$WEEKLY" == "null" ]; then
+    echo "❌ Invalid JSON format"
+    rm "$SOURCE_FILE"
+    exit 1
+fi
+
+echo "✅ Data from Extension:"
+echo "   Session: ${SESSION}%"
+echo "   Weekly: ${WEEKLY}%"
+if [ -n "$SESSION_RESET" ]; then
+    echo "   Session resets: ${SESSION_RESET}"
+fi
+if [ -n "$WEEKLY_RESET" ]; then
+    echo "   Weekly resets: ${WEEKLY_RESET}"
+fi
+echo ""
+
+# 간단한 JSON 생성 (Web Extension 전용)
+cat > "$DEST_FILE" << EOF
+{
+  "timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
+  "source": "chrome_extension",
+  "session": {
+    "percentage": ${SESSION},
+    "reset_time": "${SESSION_RESET}",
+    "last_updated": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+  },
+  "weekly": {
+    "percentage": ${WEEKLY},
+    "reset_time": "${WEEKLY_RESET}",
+    "last_updated": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+  }
+}
+EOF
+
+# 원본 파일 삭제
+rm "$SOURCE_FILE"
+
+# SwiftBar 새로고침
+open "swiftbar://refreshallplugins" 2>/dev/null
+touch "$HOME/Library/Application Support/SwiftBar/ClaudeUsage.1m.sh" 2>/dev/null
+
+echo "✅ Sync complete! SwiftBar updated to ${SESSION}%"

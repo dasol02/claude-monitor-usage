@@ -1,0 +1,31 @@
+#!/bin/bash
+# Chrome Extension 파일 자동 감지 및 동기화
+# Downloads 폴더를 모니터링하여 자동으로 sync 실행
+
+WATCH_FILE="$HOME/Downloads/claude-auto-usage.json"
+SYNC_SCRIPT="$HOME/.local/bin/claude-sync-from-extension"
+LOG_FILE="/tmp/claude-extension-watcher.log"
+
+echo "[WATCHER] $(date): Started watching for Extension updates" >> "$LOG_FILE"
+
+# fswatch가 설치되어 있는지 확인
+if ! command -v fswatch &> /dev/null; then
+    echo "[ERROR] fswatch not installed. Installing..." >> "$LOG_FILE"
+    brew install fswatch >> "$LOG_FILE" 2>&1
+fi
+
+# Downloads 폴더 모니터링
+fswatch -0 -e ".*" -i "claude-auto-usage\\.json$" "$HOME/Downloads" | while read -d "" event; do
+    # 파일이 생성되었는지 확인
+    if [ -f "$WATCH_FILE" ]; then
+        echo "[WATCHER] $(date): Extension file detected, syncing..." >> "$LOG_FILE"
+
+        # 짧은 대기 (파일 쓰기 완료 대기)
+        sleep 0.5
+
+        # Sync 실행
+        "$SYNC_SCRIPT" >> "$LOG_FILE" 2>&1
+
+        echo "[WATCHER] $(date): Sync completed" >> "$LOG_FILE"
+    fi
+done
