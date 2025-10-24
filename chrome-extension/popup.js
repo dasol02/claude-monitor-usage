@@ -4,6 +4,15 @@
 
 document.addEventListener('DOMContentLoaded', () => {
   loadStatus();
+  loadInterval();
+
+  // Interval 설정 변경
+  document.getElementById('intervalSelect').addEventListener('change', async (e) => {
+    const interval = parseInt(e.target.value);
+    await chrome.storage.local.set({ scrapeInterval: interval });
+    await chrome.runtime.sendMessage({ action: 'updateInterval', interval: interval });
+    console.log('Scrape interval updated to:', interval, 'minutes');
+  });
 
   // Scrape Now 버튼
   document.getElementById('scrapeBtn').addEventListener('click', async () => {
@@ -91,5 +100,16 @@ async function loadStatus() {
 
   } catch (error) {
     console.error('Failed to load status:', error);
+  }
+}
+
+// Interval 설정 로드
+async function loadInterval() {
+  try {
+    const result = await chrome.storage.local.get(['scrapeInterval']);
+    const interval = result.scrapeInterval !== undefined ? result.scrapeInterval : 5;
+    document.getElementById('intervalSelect').value = interval;
+  } catch (error) {
+    console.error('Failed to load interval:', error);
   }
 }

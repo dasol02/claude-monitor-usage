@@ -5,26 +5,51 @@
 
 // 설정
 const CONFIG = {
-  SCRAPE_INTERVAL: 5, // 5분마다
+  DEFAULT_INTERVAL: 5, // 기본 5분
   USAGE_URL: 'https://claude.ai/settings/usage'
 };
 
 // Extension 설치 시 초기화
-chrome.runtime.onInstalled.addListener(() => {
+chrome.runtime.onInstalled.addListener(async () => {
   console.log('Claude Usage Monitor Extension installed');
 
-  // 5분마다 알람 설정
-  chrome.alarms.create('scrapeUsage', {
-    periodInMinutes: CONFIG.SCRAPE_INTERVAL
-  });
-
   // 초기 상태 저장
-  chrome.storage.local.set({
+  const result = await chrome.storage.local.get(['scrapeInterval']);
+  const interval = result.scrapeInterval !== undefined ? result.scrapeInterval : CONFIG.DEFAULT_INTERVAL;
+
+  await chrome.storage.local.set({
+    scrapeInterval: interval,
     lastScrape: null,
     lastUsage: { session: null, weekly: null },
     status: 'initialized'
   });
+
+  // Alarm 설정
+  await updateAlarm(interval);
 });
+
+// Extension 시작 시 알람 재설정
+chrome.runtime.onStartup.addListener(async () => {
+  const result = await chrome.storage.local.get(['scrapeInterval']);
+  const interval = result.scrapeInterval !== undefined ? result.scrapeInterval : CONFIG.DEFAULT_INTERVAL;
+  await updateAlarm(interval);
+});
+
+// Alarm 업데이트 함수
+async function updateAlarm(interval) {
+  // 기존 알람 제거
+  await chrome.alarms.clear('scrapeUsage');
+
+  if (interval > 0) {
+    // 새 알람 생성
+    await chrome.alarms.create('scrapeUsage', {
+      periodInMinutes: interval
+    });
+    console.log(`Alarm set to ${interval} minutes`);
+  } else {
+    console.log('Auto-scraping disabled (manual only)');
+  }
+}
 
 // 알람 이벤트 처리 (5분마다 실행)
 chrome.alarms.onAlarm.addListener((alarm) => {
@@ -221,6 +246,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'getStatus') {
     chrome.storage.local.get(['lastScrape', 'lastUsage', 'status'], (result) => {
       sendResponse(result);
+    });
+    return true;
+  }
+
+  if (request.action === 'updateInterval') {
+    updateAlarm(request.interval).then(() => {
+      sendResponse({ success: true });
+    }).catch(error => {
+      sendResponse({ success: false, error: error.message });
     });
     return true;
   }

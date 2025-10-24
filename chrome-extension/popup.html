@@ -120,8 +120,19 @@
   <button id="openUsageBtn">📊 Open Usage Page</button>
 
   <div class="info">
-    <p>⏰ Auto-scraping every 5 minutes</p>
-    <p>💾 Data saved to local monitor</p>
+    <div style="margin-bottom: 8px;">
+      <label for="intervalSelect" style="font-size: 12px; color: #666;">
+        ⏰ Auto-scraping interval:
+      </label>
+      <select id="intervalSelect" style="margin-left: 4px; padding: 2px 4px; font-size: 12px; border-radius: 4px; border: 1px solid #ccc;">
+        <option value="5">Every 5 minutes</option>
+        <option value="10">Every 10 minutes</option>
+        <option value="15">Every 15 minutes</option>
+        <option value="30">Every 30 minutes</option>
+        <option value="0">Manual only</option>
+      </select>
+    </div>
+    <p>💾 Data saved to local storage</p>
   </div>
 
   <script src="popup.js"></script>
